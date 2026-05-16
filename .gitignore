@@ -28,3 +28,7 @@ qdrant_data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime artifacts
+*.log
+current_run_id.txt
