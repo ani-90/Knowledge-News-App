@@ -128,21 +128,34 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                   ),
                   const Divider(height: 32),
 
-                  // Full article content — shown instead of summary when available
+                  // Full article content
                   if (_article.hasFullContent) ...[
                     MarkdownBody(
                       data: _cleanContent(_article.rawContent),
                       styleSheet: _contentStyle(),
                       onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
                     ),
-                    const SizedBox(height: 80),
-                  ] else ...[
-                    // Summary-only fallback
-                    MarkdownBody(
-                      data: _article.summary,
-                      styleSheet: _summaryStyle(),
-                      onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
+                    const Divider(height: 40),
+                    const Text(
+                      'AI SUMMARY',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 1.2,
+                      ),
                     ),
+                    const SizedBox(height: 10),
+                  ],
+
+                  // AI Summary (always shown)
+                  MarkdownBody(
+                    data: _article.summary,
+                    styleSheet: _summaryStyle(),
+                    onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
+                  ),
+
+                  if (!_article.hasFullContent) ...[
                     const SizedBox(height: 16),
                     GestureDetector(
                       onTap: () => _openUrl(_article.sourceUrl),
@@ -163,8 +176,8 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 80),
                   ],
+                  const SizedBox(height: 80),
                 ],
               ),
             ),

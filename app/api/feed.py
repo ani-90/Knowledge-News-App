@@ -130,7 +130,15 @@ def get_feed(
     _min_dt = datetime.min.replace(tzinfo=timezone.utc)
     articles.sort(key=lambda a: a.fetched_at or _min_dt, reverse=True)
 
-    return FeedResponse(domain=domain, articles=articles, total=len(articles))
+    # Deduplicate by URL — Qdrant may hold multiple points for the same URL from different pipeline runs
+    seen_urls: set = set()
+    deduped = []
+    for a in articles:
+        if a.url not in seen_urls:
+            seen_urls.add(a.url)
+            deduped.append(a)
+
+    return FeedResponse(domain=domain, articles=deduped, total=len(deduped))
 
 
 def _is_quality_content(text: str) -> bool:
