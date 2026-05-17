@@ -32,6 +32,10 @@ class ArticleResponse(BaseModel):
     fetched_at: Optional[datetime] = None
 
 
+class ArticleDetailResponse(ArticleResponse):
+    raw_content: str = ""
+
+
 class FeedResponse(BaseModel):
     domain: Optional[str]
     articles: List[ArticleResponse]

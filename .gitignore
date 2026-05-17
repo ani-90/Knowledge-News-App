@@ -32,3 +32,11 @@ Thumbs.db
 # Runtime artifacts
 *.log
 current_run_id.txt
+
+# Flutter
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/android/.gradle/
+frontend/android/local.properties

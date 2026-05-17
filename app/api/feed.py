@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.sqlite import get_db
 from app.db import crud, qdrant as qdrant_db
-from app.schemas.feed import FeedRefreshRequest, FeedRefreshResponse, ArticleResponse, FeedResponse
+from app.schemas.feed import FeedRefreshRequest, FeedRefreshResponse, ArticleResponse, ArticleDetailResponse, FeedResponse
 from app.config import DOMAINS
 
 router = APIRouter(prefix="/api/feed", tags=["feed"])
@@ -96,14 +96,23 @@ def get_feed(
         if sqlite_id is None:
             needs_lookup.append(payload_qdrant_id)
 
-    # Fallback: bulk lookup SQLite ids by qdrant_id for articles without sqlite_id in payload
+    # Fallback 1: lookup SQLite ids by qdrant_id for articles without sqlite_id in payload
     id_map: dict = {}
     if needs_lookup:
         id_map = crud.get_articles_by_qdrant_ids(db, needs_lookup)
 
+    # Fallback 2: for articles still unresolved, lookup by URL
+    still_missing_urls = [
+        p.get("url") for _, payload_qdrant_id, sqlite_id, p in raw_articles
+        if sqlite_id is None and id_map.get(payload_qdrant_id) is None and p.get("url")
+    ]
+    url_map: dict = {}
+    if still_missing_urls:
+        url_map = crud.get_articles_by_urls(db, still_missing_urls)
+
     articles = []
     for qdrant_id, payload_qdrant_id, sqlite_id, p in raw_articles:
-        resolved_id = sqlite_id or id_map.get(payload_qdrant_id)
+        resolved_id = sqlite_id or id_map.get(payload_qdrant_id) or url_map.get(p.get("url"))
         articles.append(ArticleResponse(
             id=resolved_id,
             qdrant_id=qdrant_id,
@@ -121,6 +130,25 @@ def get_feed(
     articles.sort(key=lambda a: a.fetched_at or _min_dt, reverse=True)
 
     return FeedResponse(domain=domain, articles=articles, total=len(articles))
+
+
+@router.get("/{article_id}", response_model=ArticleDetailResponse)
+def get_article_detail(article_id: int, db: Session = Depends(get_db)):
+    article = crud.get_article(db, article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return ArticleDetailResponse(
+        id=article.id,
+        qdrant_id=article.qdrant_id,
+        title=article.title,
+        url=article.url,
+        summary=article.summary,
+        raw_content=article.raw_content or "",
+        domain=article.domain,
+        source=article.source,
+        tags=json.loads(article.tags or "[]"),
+        fetched_at=article.fetched_at,
+    )
 
 
 @router.post("/{article_id}/read")

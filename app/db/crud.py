@@ -70,6 +70,12 @@ def get_articles_by_qdrant_ids(db: Session, qdrant_ids: List[str]) -> dict:
     return {qdrant_id: sqlite_id for qdrant_id, sqlite_id in rows}
 
 
+def get_articles_by_urls(db: Session, urls: List[str]) -> dict:
+    """Return {url: sqlite_id} for the given list of URLs."""
+    rows = db.query(Article.url, Article.id).filter(Article.url.in_(urls)).all()
+    return {url: sqlite_id for url, sqlite_id in rows}
+
+
 # --- Pipeline Runs ---
 
 def create_pipeline_run(db: Session, run_id: str, user_id: int, domains: List[str]) -> PipelineRun:
