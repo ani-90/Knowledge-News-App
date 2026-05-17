@@ -19,7 +19,6 @@ class ArticleDetailScreen extends StatefulWidget {
 class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   late Article _article;
   bool _loading = true;
-  String? _error;
 
   @override
   void initState() {
@@ -32,22 +31,34 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     try {
       final detail = await FeedService().getArticleDetail(_article.id);
       if (mounted) setState(() { _article = detail; _loading = false; });
-    } catch (e) {
-      if (mounted) setState(() { _loading = false; _error = e.toString(); });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  /// Convert bare URLs in plain text to markdown links so MarkdownBody renders them clickable.
-  String _linkify(String text) {
-    return text.replaceAllMapped(
+  /// Strip internal anchor links [text](#...) → text, data: image blobs,
+  /// and convert bare https:// URLs to markdown links.
+  String _cleanContent(String text) {
+    // Remove data URI images (base64 blobs — can't render, just clutter)
+    text = text.replaceAll(RegExp(r'!\[[^\]]*\]\(data:[^\)]+\)'), '');
+    // Strip TOC-style internal anchor links: [Section Name](#anchor) → Section Name
+    text = text.replaceAllMapped(
+      RegExp(r'\[([^\]]+)\]\(#[^\)]*\)'),
+      (m) => m[1]!,
+    );
+    // Convert bare URLs to clickable markdown links
+    text = text.replaceAllMapped(
       RegExp(r'(?<!\()(?<!\[)(https?://[^\s\)\]<>"]+)'),
       (m) => '[${m[1]}](${m[1]})',
     );
+    return text.trim();
   }
 
   Future<void> _openUrl(String url) async {
     final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (uri != null && await canLaunchUrl(uri)) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   MarkdownStyleSheet _contentStyle() => MarkdownStyleSheet(
@@ -92,6 +103,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title
                   Text(
                     _article.title,
                     style: const TextStyle(
@@ -102,71 +114,57 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // Meta row
                   Row(
                     children: [
                       const Icon(Icons.source, size: 14, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
-                      Text(
-                        _article.sourceName,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
+                      Text(_article.sourceName,
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       const Spacer(),
-                      Text(
-                        _formatDate(_article.fetchedAt),
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
+                      Text(_formatDate(_article.fetchedAt),
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                   const Divider(height: 32),
 
-                  // Full article content
+                  // Full article content — shown instead of summary when available
                   if (_article.hasFullContent) ...[
                     MarkdownBody(
-                      data: _linkify(_article.rawContent),
+                      data: _cleanContent(_article.rawContent),
                       styleSheet: _contentStyle(),
                       onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
                     ),
-                    const Divider(height: 40),
-                    const Text(
-                      'AI SUMMARY',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 1.2,
-                      ),
+                    const SizedBox(height: 80),
+                  ] else ...[
+                    // Summary-only fallback
+                    MarkdownBody(
+                      data: _article.summary,
+                      styleSheet: _summaryStyle(),
+                      onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
                     ),
-                    const SizedBox(height: 10),
-                  ],
-
-                  // Summary (always shown; smaller when full content is above)
-                  MarkdownBody(
-                    data: _article.summary,
-                    styleSheet: _summaryStyle(),
-                    onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
-                  ),
-
-                  // Paywall notice
-                  if (!_article.hasFullContent) ...[
                     const SizedBox(height: 16),
                     GestureDetector(
                       onTap: () => _openUrl(_article.sourceUrl),
-                      child: Row(
-                        children: const [
+                      child: const Row(
+                        children: [
                           Icon(Icons.lock_outline, size: 13, color: AppColors.textSecondary),
                           SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'Full article unavailable (paywalled or restricted). Tap to read on source.',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary, decoration: TextDecoration.underline),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                decoration: TextDecoration.underline,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 80),
                   ],
-
-                  const SizedBox(height: 80),
                 ],
               ),
             ),

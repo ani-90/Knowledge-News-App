@@ -133,6 +133,15 @@ def get_feed(
     return FeedResponse(domain=domain, articles=articles, total=len(articles))
 
 
+def _is_quality_content(text: str) -> bool:
+    """Return False if text looks like scraped navigation/UI rather than article prose."""
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    if not lines:
+        return False
+    avg_words = sum(len(l.split()) for l in lines) / len(lines)
+    return avg_words >= 7  # navigation menus have short lines; real prose averages 7+ words
+
+
 @router.get("/{article_id}", response_model=ArticleDetailResponse)
 def get_article_detail(article_id: int, db: Session = Depends(get_db)):
     from app.services import scraper
@@ -142,13 +151,16 @@ def get_article_detail(article_id: int, db: Session = Depends(get_db)):
 
     raw_content = article.raw_content or ""
 
-    # Re-scrape on demand if stored content is too short
-    if len(raw_content.strip()) < 500 and article.url:
+    # Re-scrape on demand if stored content is too short or is navigation junk
+    if (len(raw_content.strip()) < 500 or not _is_quality_content(raw_content)) and article.url:
         enriched = scraper.enrich_content(article.url, raw_content)
-        if len(enriched) > len(raw_content):
+        if len(enriched) > len(raw_content) and _is_quality_content(enriched):
             raw_content = enriched
             db.query(ArticleModel).filter_by(id=article_id).update({"raw_content": raw_content})
             db.commit()
+        elif not _is_quality_content(raw_content):
+            # Content is junk and re-scrape didn't help — return empty so client shows summary
+            raw_content = ""
 
     return ArticleDetailResponse(
         id=article.id,
