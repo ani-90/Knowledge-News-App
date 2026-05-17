@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.sqlite import get_db
 from app.db import crud, qdrant as qdrant_db
+from app.db.models import Article as ArticleModel
 from app.schemas.feed import FeedRefreshRequest, FeedRefreshResponse, ArticleResponse, ArticleDetailResponse, FeedResponse
 from app.config import DOMAINS
 
@@ -134,16 +135,28 @@ def get_feed(
 
 @router.get("/{article_id}", response_model=ArticleDetailResponse)
 def get_article_detail(article_id: int, db: Session = Depends(get_db)):
+    from app.services import scraper
     article = crud.get_article(db, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+
+    raw_content = article.raw_content or ""
+
+    # Re-scrape on demand if stored content is too short
+    if len(raw_content.strip()) < 500 and article.url:
+        enriched = scraper.enrich_content(article.url, raw_content)
+        if len(enriched) > len(raw_content):
+            raw_content = enriched
+            db.query(ArticleModel).filter_by(id=article_id).update({"raw_content": raw_content})
+            db.commit()
+
     return ArticleDetailResponse(
         id=article.id,
         qdrant_id=article.qdrant_id,
         title=article.title,
         url=article.url,
         summary=article.summary,
-        raw_content=article.raw_content or "",
+        raw_content=raw_content,
         domain=article.domain,
         source=article.source,
         tags=json.loads(article.tags or "[]"),
