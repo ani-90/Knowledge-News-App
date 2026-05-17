@@ -37,6 +37,36 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     }
   }
 
+  /// Convert bare URLs in plain text to markdown links so MarkdownBody renders them clickable.
+  String _linkify(String text) {
+    return text.replaceAllMapped(
+      RegExp(r'(?<!\()(?<!\[)(https?://[^\s\)\]<>"]+)'),
+      (m) => '[${m[1]}](${m[1]})',
+    );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  MarkdownStyleSheet _contentStyle() => MarkdownStyleSheet(
+    p: const TextStyle(fontSize: 15, height: 1.75, color: AppColors.textPrimary),
+    h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
+    h2: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
+    h3: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
+    h4: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
+    strong: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+    a: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+    blockquote: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+    code: const TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Color(0xFFEEEEEE)),
+  );
+
+  MarkdownStyleSheet _summaryStyle() => MarkdownStyleSheet(
+    p: const TextStyle(fontSize: 16, height: 1.7, color: AppColors.textPrimary),
+    strong: const TextStyle(fontWeight: FontWeight.w600),
+  );
+
   @override
   Widget build(BuildContext context) {
     final domainColor = AppColors.forDomain(_article.domain);
@@ -88,52 +118,54 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                     ],
                   ),
                   const Divider(height: 32),
+
+                  // Full article content
                   if (_article.hasFullContent) ...[
-                    Text(
-                      _article.rawContent,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.7,
-                        color: AppColors.textPrimary,
-                      ),
+                    MarkdownBody(
+                      data: _linkify(_article.rawContent),
+                      styleSheet: _contentStyle(),
+                      onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
                     ),
-                    const Divider(height: 32),
+                    const Divider(height: 40),
                     const Text(
-                      'AI Summary',
+                      'AI SUMMARY',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textSecondary,
-                        letterSpacing: 0.5,
+                        letterSpacing: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                   ],
+
+                  // Summary (always shown; smaller when full content is above)
                   MarkdownBody(
                     data: _article.summary,
-                    styleSheet: MarkdownStyleSheet(
-                      p: TextStyle(
-                        fontSize: _article.hasFullContent ? 14 : 16,
-                        height: 1.7,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
+                    styleSheet: _summaryStyle(),
+                    onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
                   ),
+
+                  // Paywall notice
                   if (!_article.hasFullContent) ...[
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Icon(Icons.info_outline, size: 14, color: AppColors.textSecondary),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Full article unavailable (paywalled or restricted). Tap  to read on source.',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    GestureDetector(
+                      onTap: () => _openUrl(_article.sourceUrl),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.lock_outline, size: 13, color: AppColors.textSecondary),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Full article unavailable (paywalled or restricted). Tap to read on source.',
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary, decoration: TextDecoration.underline),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
+
                   const SizedBox(height: 80),
                 ],
               ),
@@ -156,11 +188,6 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
         builder: (_) => QuizScreen(articleId: _article.id, articleTitle: _article.title),
       ),
     );
-  }
-
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) launchUrl(uri);
   }
 
   String _formatDate(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
