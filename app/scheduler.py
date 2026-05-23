@@ -1,22 +1,22 @@
 import asyncio
 import logging
 from uuid import uuid4
-from datetime import datetime, timezone
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.config import DOMAINS
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+scheduler = BackgroundScheduler()
 
 
-async def _daily_refresh():
+def _daily_refresh():
     from app.pipeline.graph import run_pipeline
     from app.db.sqlite import SessionLocal
     from app.db import crud
+    from datetime import datetime, timezone
 
     run_id = str(uuid4())
     logger.info("Scheduled daily refresh starting — run_id=%s", run_id)
@@ -29,7 +29,7 @@ async def _daily_refresh():
         db.close()
 
     try:
-        result = await run_pipeline(run_id, user_id=1, domains=DOMAINS)
+        result = asyncio.run(run_pipeline(run_id, user_id=1, domains=DOMAINS))
         logger.info(
             "Scheduled refresh complete — persisted=%d dupes=%d status=%s",
             result.get("persisted_count", 0),
@@ -41,13 +41,12 @@ async def _daily_refresh():
 
 
 def start_scheduler(hour: int = 7, minute: int = 0) -> None:
-    """Start the daily refresh job. Defaults to 07:00 local time."""
     scheduler.add_job(
         _daily_refresh,
         trigger=CronTrigger(hour=hour, minute=minute),
         id="daily_refresh",
         replace_existing=True,
-        misfire_grace_time=3600,  # run even if server was down for up to 1 hour
+        misfire_grace_time=3600,
     )
     scheduler.start()
     next_run = scheduler.get_job("daily_refresh").next_run_time
