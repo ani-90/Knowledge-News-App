@@ -11,21 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.sqlite import init_db
-from app.scheduler import start_scheduler, stop_scheduler
 from app.api import feed, quiz, user
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     init_db()
-    # Scheduler temporarily disabled for diagnostics
     yield
-    # Shutdown
-    try:
-        stop_scheduler()
-    except Exception:
-        pass
 
 
 app = FastAPI(
