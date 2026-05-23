@@ -25,9 +25,8 @@ newsapi-python==0.2.7
 httpx==0.27.2
 trafilatura==2.0.0
 
-# Embeddings (local CPU model — install torch separately before this)
-# pip install torch --index-url https://download.pytorch.org/whl/cpu
-sentence-transformers==3.3.1
+# Embeddings (ONNX runtime — no PyTorch, ~100MB vs ~400MB for torch)
+fastembed==0.4.2
 
 # Utilities
 python-multipart==0.0.12

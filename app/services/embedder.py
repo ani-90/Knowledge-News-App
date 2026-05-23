@@ -1,23 +1,21 @@
 from typing import List, Optional
-from sentence_transformers import SentenceTransformer
-from app.config import settings
+from fastembed import TextEmbedding
 
-_model: Optional[SentenceTransformer] = None
+_model: Optional[TextEmbedding] = None
 
 
-def _get_model() -> SentenceTransformer:
+def _get_model() -> TextEmbedding:
     global _model
     if _model is None:
-        _model = SentenceTransformer(settings.embedding_model)
+        _model = TextEmbedding("BAAI/bge-small-en-v1.5")
     return _model
 
 
 def embed(text: str) -> List[float]:
     model = _get_model()
-    vector = model.encode(text, normalize_embeddings=True)
-    return vector.tolist()
+    vectors = list(model.embed([text]))
+    return vectors[0].tolist()
 
 
 def warmup() -> None:
-    """Call at startup to pre-load the model into memory."""
     _get_model()
