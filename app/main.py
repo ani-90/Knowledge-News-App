@@ -19,10 +19,16 @@ from app.api import feed, quiz, user
 async def lifespan(app: FastAPI):
     # Startup
     init_db()
-    start_scheduler(hour=settings.schedule_hour, minute=settings.schedule_minute)
+    try:
+        start_scheduler(hour=settings.schedule_hour, minute=settings.schedule_minute)
+    except Exception as exc:
+        logging.error("Scheduler failed to start (non-fatal): %s", exc)
     yield
     # Shutdown
-    stop_scheduler()
+    try:
+        stop_scheduler()
+    except Exception:
+        pass
 
 
 app = FastAPI(
