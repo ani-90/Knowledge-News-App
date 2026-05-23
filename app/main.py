@@ -11,8 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.sqlite import init_db
-from app.db.qdrant import init_collection
-from app.services.embedder import warmup
 from app.scheduler import start_scheduler, stop_scheduler
 from app.api import feed, quiz, user
 
@@ -21,8 +19,6 @@ from app.api import feed, quiz, user
 async def lifespan(app: FastAPI):
     # Startup
     init_db()
-    init_collection()
-    warmup()
     start_scheduler(hour=settings.schedule_hour, minute=settings.schedule_minute)
     yield
     # Shutdown

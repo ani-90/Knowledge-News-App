@@ -76,6 +76,20 @@ def get_articles_by_urls(db: Session, urls: List[str]) -> dict:
     return {url: sqlite_id for url, sqlite_id in rows}
 
 
+def get_articles_by_domain(db: Session, domain: str, limit: int = 20) -> List[Article]:
+    return (
+        db.query(Article)
+        .filter(Article.domain == domain)
+        .order_by(Article.fetched_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def get_all_recent_articles(db: Session, limit: int = 100) -> List[Article]:
+    return db.query(Article).order_by(Article.fetched_at.desc()).limit(limit).all()
+
+
 # --- Pipeline Runs ---
 
 def create_pipeline_run(db: Session, run_id: str, user_id: int, domains: List[str]) -> PipelineRun:

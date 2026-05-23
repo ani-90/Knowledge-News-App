@@ -1,12 +1,11 @@
 import json
-from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.sqlite import get_db
-from app.db import crud, qdrant as qdrant_db
+from app.db import crud
 from app.db.models import Article as ArticleModel
 from app.schemas.feed import FeedRefreshRequest, FeedRefreshResponse, ArticleResponse, ArticleDetailResponse, FeedResponse
 from app.config import DOMAINS
@@ -76,69 +75,27 @@ def get_feed(
     if domain and domain not in DOMAINS:
         raise HTTPException(status_code=400, detail=f"Unknown domain. Choose from: {DOMAINS}")
 
-    try:
-        if domain:
-            records = qdrant_db.get_by_domain(domain, limit=limit)
-        else:
-            records = qdrant_db.get_all_recent(limit=limit)
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Vector store error: {exc}")
+    if domain:
+        db_articles = crud.get_articles_by_domain(db, domain, limit=limit)
+    else:
+        db_articles = crud.get_all_recent_articles(db, limit=limit)
 
-    # Build articles with sqlite_id from Qdrant payload when available
-    raw_articles = []
-    needs_lookup = []
-    for r in records:
-        p = r.payload or {}
-        qdrant_id = str(r.id)
-        # payload qdrant_id matches SQLite; may differ from r.id for older points
-        payload_qdrant_id = p.get("qdrant_id", qdrant_id)
-        sqlite_id = p.get("sqlite_id")
-        raw_articles.append((qdrant_id, payload_qdrant_id, sqlite_id, p))
-        if sqlite_id is None:
-            needs_lookup.append(payload_qdrant_id)
-
-    # Fallback 1: lookup SQLite ids by qdrant_id for articles without sqlite_id in payload
-    id_map: dict = {}
-    if needs_lookup:
-        id_map = crud.get_articles_by_qdrant_ids(db, needs_lookup)
-
-    # Fallback 2: for articles still unresolved, lookup by URL
-    still_missing_urls = [
-        p.get("url") for _, payload_qdrant_id, sqlite_id, p in raw_articles
-        if sqlite_id is None and id_map.get(payload_qdrant_id) is None and p.get("url")
+    articles = [
+        ArticleResponse(
+            id=a.id,
+            qdrant_id=a.qdrant_id,
+            title=a.title,
+            url=a.url,
+            summary=a.summary,
+            domain=a.domain,
+            source=a.source,
+            tags=json.loads(a.tags or "[]"),
+            fetched_at=a.fetched_at,
+        )
+        for a in db_articles
     ]
-    url_map: dict = {}
-    if still_missing_urls:
-        url_map = crud.get_articles_by_urls(db, still_missing_urls)
 
-    articles = []
-    for qdrant_id, payload_qdrant_id, sqlite_id, p in raw_articles:
-        resolved_id = sqlite_id or id_map.get(payload_qdrant_id) or url_map.get(p.get("url"))
-        articles.append(ArticleResponse(
-            id=resolved_id,
-            qdrant_id=qdrant_id,
-            title=p.get("title", ""),
-            url=p.get("url", ""),
-            summary=p.get("summary", ""),
-            domain=p.get("domain", domain or ""),
-            source=p.get("source", ""),
-            tags=p.get("tags", []),
-            fetched_at=p.get("fetched_at"),
-        ))
-
-    # Sort by fetched_at descending (newest first); use datetime.min for None so they sink to the bottom
-    _min_dt = datetime.min.replace(tzinfo=timezone.utc)
-    articles.sort(key=lambda a: a.fetched_at or _min_dt, reverse=True)
-
-    # Deduplicate by URL — Qdrant may hold multiple points for the same URL from different pipeline runs
-    seen_urls: set = set()
-    deduped = []
-    for a in articles:
-        if a.url not in seen_urls:
-            seen_urls.add(a.url)
-            deduped.append(a)
-
-    return FeedResponse(domain=domain, articles=deduped, total=len(deduped))
+    return FeedResponse(domain=domain, articles=articles, total=len(articles))
 
 
 def _is_quality_content(text: str) -> bool:
