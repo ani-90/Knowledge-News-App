@@ -9,6 +9,7 @@ logging.basicConfig(
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import settings
 from app.db.sqlite import init_db
 from app.db.qdrant import init_collection
 from app.services.embedder import warmup
@@ -22,7 +23,7 @@ async def lifespan(app: FastAPI):
     init_db()
     init_collection()
     warmup()
-    start_scheduler(hour=7, minute=0)  # daily refresh at 07:00 local time
+    start_scheduler(hour=settings.schedule_hour, minute=settings.schedule_minute)
     yield
     # Shutdown
     stop_scheduler()
@@ -37,7 +38,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://knowledge-news-app-production.up.railway.app",
+        "http://localhost:8000",
+        "http://10.0.2.2:8000",  # Android emulator → host localhost
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )

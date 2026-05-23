@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 
 class ApiClient {
-  static const String _baseUrl = 'http://192.168.1.165:8000';
+  static const String _baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://knowledge-news-app-production.up.railway.app',
+  );
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;

@@ -18,7 +18,12 @@ _client: Optional[QdrantClient] = None
 def get_client() -> QdrantClient:
     global _client
     if _client is None:
-        _client = QdrantClient(path=settings.qdrant_path)
+        if settings.qdrant_url:
+            # Qdrant Cloud
+            _client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
+        else:
+            # Local fallback for dev
+            _client = QdrantClient(path=settings.qdrant_path)
     return _client
 
 
@@ -48,7 +53,7 @@ def upsert_articles(points: List[dict]) -> int:
     client = get_client()
     structs = [
         PointStruct(
-            id=p["qdrant_id"],  # use the aggregator-assigned UUID so point ID == SQLite qdrant_id
+            id=p["qdrant_id"],
             vector=p["vector"],
             payload={k: v for k, v in p.items() if k != "vector"},
         )
@@ -70,7 +75,7 @@ def get_by_domain(domain: str, limit: int = 20) -> list:
         with_payload=True,
         with_vectors=False,
     )
-    return results[0]  # list of ScoredPoint / Record objects
+    return results[0]
 
 
 def get_all_recent(limit: int = 100) -> list:
