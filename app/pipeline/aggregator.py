@@ -14,20 +14,27 @@ logger = logging.getLogger(__name__)
 def aggregator_node(state: PipelineState) -> dict:
     articles = state.get("raw_articles", [])
     run_id = state["run_id"]
+    errors = state.get("errors", [])
 
     duplicate_count = 0
-    db = SessionLocal()
+    persisted = 0
+    finished = datetime.now(timezone.utc).isoformat()
+    status = "failed"
 
+    db = SessionLocal()
     try:
         # Pass 1 — semantic dedup via Qdrant (catches paraphrased/syndicated duplicates)
         clean = []
         for article in articles:
             if article.embedding:
-                matches = search_similar(article.embedding, threshold=0.85)
-                if matches:
-                    logger.debug("Semantic duplicate skipped: %s", article.url)
-                    duplicate_count += 1
-                    continue
+                try:
+                    matches = search_similar(article.embedding, threshold=0.85)
+                    if matches:
+                        logger.debug("Semantic duplicate skipped: %s", article.url)
+                        duplicate_count += 1
+                        continue
+                except Exception as exc:
+                    logger.warning("Qdrant search_similar failed for %s: %s — skipping dedup", article.url, exc)
             clean.append(article)
 
         # Pass 2 — build SQLite records and bulk insert (URL-exact dedup happens here)
@@ -68,23 +75,33 @@ def aggregator_node(state: PipelineState) -> dict:
             if db_article.url in url_to_embedding and db_article.url in qdrant_id_map
         ]
         if qdrant_points:
-            upsert_articles(qdrant_points)
-            logger.info("Upserted %d vectors to Qdrant", len(qdrant_points))
+            try:
+                upsert_articles(qdrant_points)
+                logger.info("Upserted %d vectors to Qdrant", len(qdrant_points))
+            except Exception as exc:
+                logger.warning("Qdrant upsert failed: %s — articles saved to SQLite only", exc)
 
-        errors = state.get("errors", [])
         finished = datetime.now(timezone.utc).isoformat()
         status = "success" if not errors else ("partial" if persisted > 0 else "failed")
+        logger.info("Aggregator done — persisted=%d duplicates=%d status=%s", persisted, duplicate_count, status)
 
-        crud.update_pipeline_run(
-            db,
-            run_id,
-            status=status,
-            persisted_count=persisted,
-            duplicate_count=duplicate_count,
-            error_log=json.dumps(errors),
-            finished_at=datetime.now(timezone.utc),
-        )
+    except Exception as exc:
+        logger.exception("Aggregator crashed: %s", exc)
+        errors.append({"domain": "aggregator", "url": "", "error": str(exc)})
+        status = "partial" if persisted > 0 else "failed"
     finally:
+        try:
+            crud.update_pipeline_run(
+                db,
+                run_id,
+                status=status,
+                persisted_count=persisted,
+                duplicate_count=duplicate_count,
+                error_log=json.dumps(errors),
+                finished_at=datetime.now(timezone.utc),
+            )
+        except Exception as exc:
+            logger.error("Failed to update pipeline run record: %s", exc)
         db.close()
 
     return {

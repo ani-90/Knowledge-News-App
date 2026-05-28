@@ -86,7 +86,11 @@ class BaseAgent:
         seen_urls: set = set()
 
         # Try LLM-generated queries for diversity; fall back to hardcoded
-        live_queries = groq_client.generate_queries(self.domain, n=settings.tavily_queries_per_agent)
+        try:
+            live_queries = groq_client.generate_queries(self.domain, n=settings.tavily_queries_per_agent)
+        except Exception as exc:
+            logger.warning("Query generation failed for %s: %s — using hardcoded queries", self.domain, exc)
+            live_queries = []
         queries = live_queries if live_queries else self.tavily_queries
         queries = queries[:settings.tavily_queries_per_agent]
 
