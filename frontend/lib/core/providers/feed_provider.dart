@@ -14,10 +14,12 @@ class FeedProvider extends ChangeNotifier {
   final Map<String, String> _errorByDomain = {};
   PipelineRun? _lastRun;
   bool _isRefreshing = false;
+  String? _refreshError;
   Timer? _pollTimer;
 
   PipelineRun? get lastRun => _lastRun;
   bool get isRefreshing => _isRefreshing;
+  String? get refreshError => _refreshError;
 
   List<Article> articlesFor(String domain) => _articlesByDomain[domain] ?? [];
   FeedState stateFor(String domain) => _stateByDomain[domain] ?? FeedState.idle;
@@ -70,7 +72,7 @@ class FeedProvider extends ChangeNotifier {
       });
     } catch (e) {
       _isRefreshing = false;
-      _errorMessage = e.toString();
+      _refreshError = e.toString();
       notifyListeners();
     }
   }

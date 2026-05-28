@@ -28,17 +28,19 @@ class HomeScreen extends StatelessWidget {
           child: AppBar(
             backgroundColor: AppColors.surface,
             surfaceTintColor: Colors.transparent,
-            title: Row(
-              children: [
-                const Text(
-                  'Knowledge ',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w300),
-                ),
-                Text(
-                  'News',
-                  style: TextStyle(color: AppColors.accent, fontSize: 20, fontWeight: FontWeight.w700),
-                ),
-              ],
+            title: RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Rudh ',
+                    style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w300),
+                  ),
+                  TextSpan(
+                    text: 'Reads',
+                    style: TextStyle(color: AppColors.accent, fontSize: 20, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
             ),
             actions: [_RefreshButton()],
             bottom: PreferredSize(

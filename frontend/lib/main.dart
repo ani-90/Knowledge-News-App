@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/providers/debate_provider.dart';
 import 'core/providers/feed_provider.dart';
 import 'core/providers/quiz_provider.dart';
-import 'features/feed/home_screen.dart';
+import 'features/splash/splash_screen.dart';
 import 'shared/theme/app_theme.dart';
 
 void main() {
@@ -22,10 +22,10 @@ class KnowledgeNewsApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DebateProvider()),
       ],
       child: MaterialApp(
-        title: 'Knowledge News',
+        title: 'Rudh Reads',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        home: const HomeScreen(),
+        home: const SplashScreen(),
       ),
     );
   }
