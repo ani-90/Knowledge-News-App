@@ -54,16 +54,23 @@ class _DebateScreenState extends State<DebateScreen> {
   @override
   Widget build(BuildContext context) {
     final domainColor = widget.domainColor;
+    final provider = context.watch<DebateProvider>();
+    final messages = provider.messages;
+    final isLoading = provider.isLoading;
+    final rounds = messages.where((m) => m.role == 'user').length;
+    final itemCount = messages.length + (isLoading ? 1 : 0);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'DEBATE',
-              style: TextStyle(fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: domainColor),
+              'DEBATE MODE',
+              style: TextStyle(fontSize: 10, letterSpacing: 1.8, fontWeight: FontWeight.w800, color: domainColor),
             ),
             Text(
               widget.article.title,
@@ -73,89 +80,154 @@ class _DebateScreenState extends State<DebateScreen> {
             ),
           ],
         ),
+        actions: [
+          if (rounds > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: domainColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$rounds ${rounds == 1 ? 'round' : 'rounds'}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: domainColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(2),
           child: Container(height: 2, color: domainColor),
         ),
       ),
-      body: Consumer<DebateProvider>(
-        builder: (context, provider, _) {
-          final messages = provider.messages;
-          final isLoading = provider.isLoading;
-          final itemCount = messages.length + (isLoading ? 1 : 0);
+      body: Column(
+        children: [
+          if (messages.isEmpty && !isLoading)
+            Expanded(child: _DebateEmptyState(domainColor: domainColor))
+          else
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                itemCount: itemCount,
+                itemBuilder: (context, index) {
+                  if (index == messages.length && isLoading) {
+                    return _TypingBubble(domainColor: domainColor);
+                  }
+                  return _MessageBubble(message: messages[index], domainColor: domainColor);
+                },
+              ),
+            ),
 
-          return Column(
-            children: [
-              if (messages.isEmpty && !isLoading)
-                Expanded(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.forum_outlined, size: 44, color: domainColor.withValues(alpha: 0.4)),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Challenge the article',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Disagree with a claim? Push back and see how the argument holds up.',
-                            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+          if (provider.error != null)
+            Container(
+              color: const Color(0xFFFEF2F2),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: const Row(
+                children: [
+                  Icon(Icons.error_outline, size: 16, color: Color(0xFFDC2626)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Failed to get a response. Please try again.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
                     ),
                   ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) {
-                      if (index == messages.length && isLoading) {
-                        return _TypingBubble(domainColor: domainColor);
-                      }
-                      return _MessageBubble(
-                        message: messages[index],
-                        domainColor: domainColor,
-                      );
-                    },
-                  ),
-                ),
-
-              if (provider.error != null)
-                Container(
-                  color: const Color(0xFFFEF2F2),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.error_outline, size: 16, color: Color(0xFFDC2626)),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Failed to get a response. Please try again.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              _InputBar(
-                controller: _inputController,
-                domainColor: domainColor,
-                disabled: isLoading,
-                onSend: () => _sendMessage(provider),
+                ],
               ),
-            ],
-          );
-        },
+            ),
+
+          _InputBar(
+            controller: _inputController,
+            domainColor: domainColor,
+            disabled: isLoading,
+            onSend: () => _sendMessage(provider),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DebateEmptyState extends StatefulWidget {
+  final Color domainColor;
+  const _DebateEmptyState({required this.domainColor});
+
+  @override
+  State<_DebateEmptyState> createState() => _DebateEmptyStateState();
+}
+
+class _DebateEmptyStateState extends State<_DebateEmptyState>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))
+      ..repeat(reverse: true);
+    _pulse = Tween<double>(begin: 0.9, end: 1.0)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: _pulse,
+              child: Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  color: widget.domainColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.forum_rounded, size: 38, color: widget.domainColor.withValues(alpha: 0.65)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'DEBATE MODE',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: widget.domainColor,
+                letterSpacing: 2.5,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Challenge the article',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Disagree with a claim? Push back and see how the argument holds up.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.55),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
