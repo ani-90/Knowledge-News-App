@@ -108,10 +108,17 @@ class _RefreshStatusBanner extends StatelessWidget {
     final run = context.watch<FeedProvider>().lastRun;
     if (run == null) return const SizedBox.shrink();
 
+    final minutesAgo = run.lastRefreshedMinutesAgo;
     final (color, message) = switch (run.status) {
       'running' => (Colors.white.withValues(alpha: 0.15), 'Refreshing articles...'),
       'success' => (Colors.green.withValues(alpha: 0.25), 'Done — ${run.articlesAdded ?? 0} new articles added'),
-      'partial' => (Colors.orange.withValues(alpha: 0.25), 'Partial refresh completed'),
+      'partial' => (Colors.orange.withValues(alpha: 0.25), 'Partial refresh — ${run.articlesAdded ?? 0} new articles'),
+      'skipped' => (
+          Colors.white.withValues(alpha: 0.12),
+          minutesAgo != null && minutesAgo < 60
+              ? 'Already up to date — refreshed ${minutesAgo}m ago'
+              : 'Already up to date — refreshed recently',
+        ),
       _ => (Colors.red.withValues(alpha: 0.25), 'Refresh failed'),
     };
 

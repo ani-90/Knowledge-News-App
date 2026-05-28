@@ -19,12 +19,12 @@ class FeedService {
         .toList();
   }
 
-  Future<String> triggerRefresh({int userId = 1}) async {
+  Future<Map<String, dynamic>> triggerRefresh({int userId = 1}) async {
     final res = await _client.post(
       '/api/feed/refresh',
       body: {'user_id': userId},
     );
-    return res.data['run_id'] as String;
+    return res.data as Map<String, dynamic>;
   }
 
   Future<Article> getArticleDetail(int articleId) async {

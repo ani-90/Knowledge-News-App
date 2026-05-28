@@ -5,6 +5,7 @@ class PipelineRun {
   final String? errorMessage;
   final DateTime startedAt;
   final DateTime? completedAt;
+  final int? lastRefreshedMinutesAgo;
 
   const PipelineRun({
     required this.runId,
@@ -13,6 +14,7 @@ class PipelineRun {
     this.errorMessage,
     required this.startedAt,
     this.completedAt,
+    this.lastRefreshedMinutesAgo,
   });
 
   factory PipelineRun.fromJson(Map<String, dynamic> json) => PipelineRun(
@@ -26,9 +28,18 @@ class PipelineRun {
         completedAt: json['finished_at'] != null
             ? DateTime.parse(json['finished_at'] as String)
             : null,
+        lastRefreshedMinutesAgo: json['last_refreshed_minutes_ago'] as int?,
+      );
+
+  factory PipelineRun.skipped({required String runId, required int minutesAgo}) => PipelineRun(
+        runId: runId,
+        status: 'skipped',
+        startedAt: DateTime.now(),
+        lastRefreshedMinutesAgo: minutesAgo,
       );
 
   bool get isRunning => status == 'running';
   bool get isSuccess => status == 'success';
   bool get isFailed => status == 'failed';
+  bool get isSkipped => status == 'skipped';
 }

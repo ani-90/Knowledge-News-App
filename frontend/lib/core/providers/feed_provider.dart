@@ -41,7 +41,20 @@ class FeedProvider extends ChangeNotifier {
     _isRefreshing = true;
     notifyListeners();
     try {
-      final runId = await _service.triggerRefresh();
+      final data = await _service.triggerRefresh();
+      final status = data['status'] as String;
+
+      if (status == 'skipped') {
+        _lastRun = PipelineRun.skipped(
+          runId: data['run_id'] as String,
+          minutesAgo: (data['last_refreshed_minutes_ago'] as int?) ?? 0,
+        );
+        _isRefreshing = false;
+        notifyListeners();
+        return;
+      }
+
+      final runId = data['run_id'] as String;
       _pollTimer?.cancel();
       _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
         final run = await _service.getRunStatus(runId);
@@ -51,7 +64,6 @@ class FeedProvider extends ChangeNotifier {
           _pollTimer?.cancel();
           _isRefreshing = false;
           notifyListeners();
-          // Reload all cached domains after refresh
           for (final domain in _articlesByDomain.keys.toList()) {
             await loadDomain(domain);
           }

@@ -18,6 +18,8 @@ class FeedRefreshResponse(BaseModel):
     run_id: str
     status: str
     domains: List[str]
+    cooldown_remaining_seconds: Optional[int] = None  # set when status == "skipped"
+    last_refreshed_minutes_ago: Optional[int] = None  # set when status == "skipped"
 
 
 class ArticleResponse(BaseModel):

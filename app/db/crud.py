@@ -123,6 +123,15 @@ def get_pipeline_run(db: Session, run_id: str) -> Optional[PipelineRun]:
     return db.query(PipelineRun).filter(PipelineRun.run_id == run_id).first()
 
 
+def get_last_successful_run(db: Session) -> Optional[PipelineRun]:
+    return (
+        db.query(PipelineRun)
+        .filter(PipelineRun.status.in_(["success", "partial"]))
+        .order_by(PipelineRun.finished_at.desc())
+        .first()
+    )
+
+
 # --- Quiz Sessions ---
 
 def create_quiz_session(db: Session, user_id: int, article_id: int, domain: str, questions: list) -> QuizSession:

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -13,6 +14,8 @@ from app.config import DOMAINS
 
 router = APIRouter(prefix="/api/feed", tags=["feed"])
 
+_REFRESH_COOLDOWN_SECONDS = 2 * 60 * 60  # 2 hours
+
 
 @router.post("/refresh", response_model=FeedRefreshResponse)
 async def refresh_feed(
@@ -20,6 +23,24 @@ async def refresh_feed(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
+    # Cooldown check — prevent hammering Tavily with accidental refreshes
+    last_run = crud.get_last_successful_run(db)
+    if last_run and last_run.finished_at:
+        finished = last_run.finished_at
+        if finished.tzinfo is None:
+            finished = finished.replace(tzinfo=timezone.utc)
+        elapsed = int((datetime.now(timezone.utc) - finished).total_seconds())
+        remaining = _REFRESH_COOLDOWN_SECONDS - elapsed
+        if remaining > 0:
+            minutes_ago = elapsed // 60
+            return FeedRefreshResponse(
+                run_id=last_run.run_id,
+                status="skipped",
+                domains=request.resolved_domains(),
+                cooldown_remaining_seconds=remaining,
+                last_refreshed_minutes_ago=minutes_ago,
+            )
+
     domains = request.resolved_domains()
     run_id = str(uuid4())
 

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./knowledge_news.db"
 
     articles_per_source: int = 5
-    tavily_queries_per_agent: int = 5
+    tavily_queries_per_agent: int = 2
     similarity_threshold: float = 0.85
 
     # Scheduler — 01:30 UTC = 07:00 IST; override via env vars on Railway
