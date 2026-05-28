@@ -44,39 +44,54 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   String _cleanContent(String text) {
     // Remove base64 images
     text = text.replaceAll(RegExp(r'!\[[^\]]*\]\(data:[^\)]+\)'), '');
-    // Strip anchor-only links like [text](#section)
+
+    // Strip table of contents blocks (heading + anchor-link list items)
+    text = text.replaceAll(
+      RegExp(
+        r'#{1,4}\s*(table of contents|contents|toc|on this page|jump to|in this article|quick links)[^\n]*\n([ \t]*[-*\d.]+[ \t]+\[[^\]]*\]\(#[^\)]*\)\n?)+',
+        caseSensitive: false,
+        multiLine: true,
+      ),
+      '',
+    );
+
+    // Remove list items that are purely anchor links (ToC remnants)
+    text = text.replaceAll(
+      RegExp(r'^[ \t]*[-*\d.]+\.?[ \t]+\[[^\]]+\]\(#[^\)]*\)[ \t]*$', multiLine: true),
+      '',
+    );
+
+    // Strip remaining inline anchor-only links
     text = text.replaceAllMapped(
       RegExp(r'\[([^\]]+)\]\(#[^\)]*\)'),
       (m) => m[1]!,
     );
+
     // Make bare URLs into markdown links
     text = text.replaceAllMapped(
       RegExp(r'(?<!\()(?<!\[)(https?://[^\s\)\]<>"]+)'),
       (m) => '[${m[1]}](${m[1]})',
     );
-    // Collapse runs of 3+ consecutive link-only lines (navigation menus, link lists)
-    text = text.replaceAll(
-      RegExp(r'(\n\s*\[[^\]]+\]\([^\)]+\)\s*){3,}', multiLine: true),
-      '\n',
-    );
-    // Remove lines that are purely a markdown link with no surrounding prose
+
+    // Remove lines that are purely a markdown link (nav menus, link dumps)
     final lines = text.split('\n');
     final cleaned = <String>[];
     int consecutiveLinkLines = 0;
     for (final line in lines) {
       final trimmed = line.trim();
       final isLinkOnly = RegExp(r'^\[.*\]\(.*\)$').hasMatch(trimmed) ||
-          RegExp(r'^\*\s*\[.*\]\(.*\)$').hasMatch(trimmed) ||
-          RegExp(r'^-\s*\[.*\]\(.*\)$').hasMatch(trimmed);
+          RegExp(r'^[-*]\s+\[.*\]\(.*\)$').hasMatch(trimmed);
       if (isLinkOnly) {
         consecutiveLinkLines++;
-        if (consecutiveLinkLines <= 2) cleaned.add(line); // keep first 2, drop the rest
+        if (consecutiveLinkLines <= 1) cleaned.add(line);
       } else {
         consecutiveLinkLines = 0;
         cleaned.add(line);
       }
     }
-    return cleaned.join('\n').trim();
+
+    // Collapse 3+ blank lines into 2
+    return cleaned.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
   }
 
   Future<void> _openUrl(String url) async {
@@ -88,18 +103,18 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
 
   MarkdownStyleSheet _contentStyle(Color domainColor) => MarkdownStyleSheet(
         p: const TextStyle(fontSize: 15, height: 1.75, color: Colors.white),
-        h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white, height: 2),
-        h2: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.white, height: 2),
-        h3: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white, height: 1.8),
-        h4: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, height: 1.8),
+        h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, height: 1.8),
+        h2: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white, height: 1.8),
+        h3: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, height: 1.7),
+        h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, height: 1.7),
         strong: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
         a: TextStyle(color: AppColors.accent, decoration: TextDecoration.underline),
         blockquote: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6), fontStyle: FontStyle.italic),
-        code: TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Colors.white.withValues(alpha: 0.12)),
+        code: TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Colors.white.withValues(alpha: 0.10)),
       );
 
   MarkdownStyleSheet _summaryStyle() => MarkdownStyleSheet(
-        p: TextStyle(fontSize: 15, height: 1.7, color: Colors.white.withValues(alpha: 0.88)),
+        p: TextStyle(fontSize: 14, height: 1.65, color: Colors.white.withValues(alpha: 0.9)),
         strong: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
       );
 
@@ -113,13 +128,29 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(color: domainColor.withValues(alpha: 0.45)),
+            child: Container(color: domainColor.withValues(alpha: 0.35)),
           ),
         ),
         backgroundColor: Colors.transparent,
-        title: Text(
-          _article.domain.toUpperCase(),
-          style: const TextStyle(fontSize: 13, letterSpacing: 1.2, fontWeight: FontWeight.w600),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _article.domain.toUpperCase(),
+              style: TextStyle(
+                fontSize: 10,
+                letterSpacing: 1.4,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+            Text(
+              _article.title,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
         actions: [
           if (!_showSummary)
@@ -141,14 +172,62 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
           ),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: _loading
+          ? null
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  FloatingActionButton.extended(
+                    heroTag: 'debate_fab',
+                    backgroundColor: Colors.white.withValues(alpha: 0.12),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    onPressed: () {
+                      context.read<DebateProvider>().reset(_article.id);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DebateScreen(article: _article, domainColor: domainColor),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.forum_outlined, color: domainColor),
+                    label: Text('Debate', style: TextStyle(color: domainColor, fontWeight: FontWeight.w600)),
+                  ),
+                  FloatingActionButton.extended(
+                    heroTag: 'quiz_fab',
+                    backgroundColor: domainColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    onPressed: () {
+                      context.read<QuizProvider>().reset();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => QuizScreen(
+                            articleId: _article.id,
+                            articleTitle: _article.title,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.quiz),
+                    label: const Text('Quiz', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
+                  // Title (sticky in AppBar, also shown large here for reading context)
                   Text(
                     _article.title,
                     style: const TextStyle(
@@ -158,62 +237,20 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  // Meta row
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.source, size: 13, color: Colors.white.withValues(alpha: 0.5)),
+                      Icon(Icons.source, size: 12, color: Colors.white.withValues(alpha: 0.45)),
                       const SizedBox(width: 4),
                       Text(_article.sourceName,
-                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55))),
+                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5))),
                       const Spacer(),
                       Text(_formatDate(_article.fetchedAt),
-                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55))),
+                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5))),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  const Divider(color: AppColors.divider),
-                  const SizedBox(height: 20),
 
-                  // Full article content
-                  if (_article.hasFullContent) ...[
-                    MarkdownBody(
-                      data: _cleanContent(_article.rawContent),
-                      styleSheet: _contentStyle(domainColor),
-                      onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
-                    ),
-                    const SizedBox(height: 28),
-                  ],
-
-                  // Paywalled notice
-                  if (!_article.hasFullContent) ...[
-                    GestureDetector(
-                      onTap: () => _openUrl(_article.sourceUrl),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.inputFill,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.divider),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Full article unavailable (paywalled or restricted). Tap to read on source.',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Summary section (animated in)
+                  // Summary section — shown at top when triggered
                   AnimatedSize(
                     duration: const Duration(milliseconds: 350),
                     curve: Curves.easeInOut,
@@ -227,15 +264,48 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                         : const SizedBox.shrink(),
                   ),
 
+                  const SizedBox(height: 20),
+                  Divider(color: Colors.white.withValues(alpha: 0.12)),
                   const SizedBox(height: 16),
+
+                  // Full article content
+                  if (_article.hasFullContent) ...[
+                    MarkdownBody(
+                      data: _cleanContent(_article.rawContent),
+                      styleSheet: _contentStyle(domainColor),
+                      onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Paywalled notice
+                  if (!_article.hasFullContent)
+                    GestureDetector(
+                      onTap: () => _openUrl(_article.sourceUrl),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_outline, size: 14, color: Colors.white.withValues(alpha: 0.5)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Full article unavailable (paywalled). Tap to read on source.',
+                                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-      bottomNavigationBar: _ActionBar(
-        article: _article,
-        domainColor: domainColor,
-        loading: _loading,
-      ),
     );
   }
 
@@ -277,129 +347,39 @@ class _SummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Container(width: 4, height: 20, color: domainColor),
-            const SizedBox(width: 10),
-            Text(
-              'AI SUMMARY',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Colors.white.withValues(alpha: 0.55),
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        MarkdownBody(
-          data: summary,
-          styleSheet: styleSheet,
-          onTapLink: (_, href, __) { if (href != null) onTapLink(href); },
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-}
-
-class _ActionBar extends StatelessWidget {
-  final Article article;
-  final Color domainColor;
-  final bool loading;
-
-  const _ActionBar({
-    required this.article,
-    required this.domainColor,
-    required this.loading,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: _buildContent(context),
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: Icon(Icons.forum_outlined, size: 16, color: loading ? null : domainColor),
-                label: Text(
-                  'Debate',
-                  style: TextStyle(
-                    color: loading ? null : domainColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 3, height: 16, color: domainColor),
+              const SizedBox(width: 8),
+              Text(
+                'AI SUMMARY',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withValues(alpha: 0.5),
+                  letterSpacing: 1.4,
                 ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: loading ? Colors.white24 : domainColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                onPressed: loading
-                    ? null
-                    : () {
-                        context.read<DebateProvider>().reset(article.id);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DebateScreen(
-                              article: article,
-                              domainColor: domainColor,
-                            ),
-                          ),
-                        );
-                      },
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.quiz, size: 16),
-                label: const Text('Take Quiz', style: TextStyle(fontWeight: FontWeight.w600)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: loading ? null : domainColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  elevation: 0,
-                ),
-                onPressed: loading
-                    ? null
-                    : () {
-                        context.read<QuizProvider>().reset();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => QuizScreen(
-                              articleId: article.id,
-                              articleTitle: article.title,
-                            ),
-                          ),
-                        );
-                      },
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          MarkdownBody(
+            data: summary,
+            styleSheet: styleSheet,
+            onTapLink: (_, href, __) { if (href != null) onTapLink(href); },
+          ),
+        ],
       ),
     );
   }

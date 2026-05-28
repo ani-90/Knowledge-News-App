@@ -28,8 +28,8 @@ class AppColors {
 
 class AppGradients {
   static const background = LinearGradient(
-    colors: [Color(0xFF0D0D2B), Color(0xFF1A0A3D), Color(0xFF2D0A1A)],
-    stops: [0.0, 0.55, 1.0],
+    colors: [Color(0xFF0D1117), Color(0xFF161B27), Color(0xFF0D1117)],
+    stops: [0.0, 0.5, 1.0],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
