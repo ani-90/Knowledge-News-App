@@ -89,6 +89,10 @@ def aggregator_node(state: PipelineState) -> dict:
         logger.exception("Aggregator crashed: %s", exc)
         errors.append({"domain": "aggregator", "url": "", "error": str(exc)})
         status = "partial" if persisted > 0 else "failed"
+        try:
+            db.rollback()  # clear broken session state before update_pipeline_run
+        except Exception:
+            pass
     finally:
         try:
             crud.update_pipeline_run(

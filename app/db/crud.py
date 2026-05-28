@@ -55,8 +55,12 @@ def bulk_insert_articles(db: Session, articles: List[dict]) -> List[Article]:
             fetched_at=a.get("fetched_at"),
         )
         db.add(obj)
-        objs.append(obj)
-    db.commit()
+        try:
+            db.commit()
+            db.refresh(obj)
+            objs.append(obj)
+        except Exception:
+            db.rollback()  # parallel agent inserted same URL — skip, session stays clean
     return objs
 
 
