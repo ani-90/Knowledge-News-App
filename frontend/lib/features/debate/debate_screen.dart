@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/article.dart';
@@ -56,29 +55,27 @@ class _DebateScreenState extends State<DebateScreen> {
   Widget build(BuildContext context) {
     final domainColor = widget.domainColor;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(color: domainColor.withValues(alpha: 0.45)),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surface,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'DEBATE',
-              style: TextStyle(fontSize: 11, letterSpacing: 1.2, fontWeight: FontWeight.w600, color: Colors.white70),
+              style: TextStyle(fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: AppColors.textMuted),
             ),
             Text(
               widget.article.title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: Container(height: 2, color: domainColor),
         ),
       ),
       body: Consumer<DebateProvider>(
@@ -89,7 +86,6 @@ class _DebateScreenState extends State<DebateScreen> {
 
           return Column(
             children: [
-              // Empty state hint
               if (messages.isEmpty && !isLoading)
                 Expanded(
                   child: Center(
@@ -98,11 +94,11 @@ class _DebateScreenState extends State<DebateScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.forum_outlined, size: 48, color: domainColor.withValues(alpha: 0.4)),
+                          Icon(Icons.forum_outlined, size: 44, color: domainColor.withValues(alpha: 0.5)),
                           const SizedBox(height: 16),
                           const Text(
                             'Challenge the article',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                           const SizedBox(height: 8),
                           const Text(
@@ -133,26 +129,24 @@ class _DebateScreenState extends State<DebateScreen> {
                   ),
                 ),
 
-              // Error banner
               if (provider.error != null)
                 Container(
-                  color: const Color(0xFFFFF3F3),
+                  color: const Color(0xFF3A1A1A),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(Icons.error_outline, size: 16, color: Color(0xFFC62828)),
-                      const SizedBox(width: 8),
-                      const Expanded(
+                      Icon(Icons.error_outline, size: 16, color: Color(0xFFEF9A9A)),
+                      SizedBox(width: 8),
+                      Expanded(
                         child: Text(
                           'Failed to get a response. Please try again.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFFC62828)),
+                          style: TextStyle(fontSize: 12, color: Color(0xFFEF9A9A)),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-              // Input bar
               _InputBar(
                 controller: _inputController,
                 domainColor: domainColor,
@@ -185,19 +179,17 @@ class _MessageBubble extends StatelessWidget {
           if (!isUser) ...[
             CircleAvatar(
               radius: 14,
-              backgroundColor: domainColor.withValues(alpha: 0.15),
+              backgroundColor: AppColors.surfaceRaised,
               child: Icon(Icons.smart_toy_outlined, size: 15, color: domainColor),
             ),
             const SizedBox(width: 8),
           ],
           ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
-            ),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               decoration: BoxDecoration(
-                color: isUser ? domainColor : Colors.white.withValues(alpha: 0.12),
+                color: isUser ? domainColor : AppColors.surfaceRaised,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -207,11 +199,7 @@ class _MessageBubble extends StatelessWidget {
               ),
               child: Text(
                 message.content,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: Colors.white,
-                ),
+                style: const TextStyle(fontSize: 14, height: 1.5, color: Colors.white),
               ),
             ),
           ),
@@ -219,7 +207,7 @@ class _MessageBubble extends StatelessWidget {
             const SizedBox(width: 8),
             CircleAvatar(
               radius: 14,
-              backgroundColor: domainColor.withValues(alpha: 0.15),
+              backgroundColor: AppColors.surfaceRaised,
               child: Icon(Icons.person_outline, size: 15, color: domainColor),
             ),
           ],
@@ -265,15 +253,15 @@ class _TypingBubbleState extends State<_TypingBubble> {
         children: [
           CircleAvatar(
             radius: 14,
-            backgroundColor: widget.domainColor.withValues(alpha: 0.15),
+            backgroundColor: AppColors.surfaceRaised,
             child: Icon(Icons.smart_toy_outlined, size: 15, color: widget.domainColor),
           ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceRaised,
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
                 bottomRight: Radius.circular(16),
@@ -311,54 +299,46 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: SafeArea(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+    return SafeArea(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.divider)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                enabled: !disabled,
+                maxLines: null,
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Challenge a claim...',
+                ),
+                onSubmitted: (_) => onSend(),
+              ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    enabled: !disabled,
-                    maxLines: null,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      hintText: 'Challenge a claim...',
-                    ),
-                    onSubmitted: (_) => onSend(),
+            const SizedBox(width: 8),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (_, value, __) {
+                final canSend = value.text.trim().isNotEmpty && !disabled;
+                return IconButton(
+                  onPressed: canSend ? onSend : null,
+                  icon: const Icon(Icons.send_rounded),
+                  color: domainColor,
+                  disabledColor: AppColors.textMuted,
+                  style: IconButton.styleFrom(
+                    backgroundColor: canSend ? domainColor.withValues(alpha: 0.15) : Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: controller,
-                  builder: (_, value, __) {
-                    final canSend = value.text.trim().isNotEmpty && !disabled;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      child: IconButton(
-                        onPressed: canSend ? onSend : null,
-                        icon: const Icon(Icons.send_rounded),
-                        color: domainColor,
-                        disabledColor: Colors.white24,
-                        style: IconButton.styleFrom(
-                          backgroundColor: canSend ? domainColor.withValues(alpha: 0.2) : Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                );
+              },
             ),
-          ),
+          ],
         ),
       ),
     );

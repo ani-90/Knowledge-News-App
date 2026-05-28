@@ -33,7 +33,7 @@ class _DomainFeedScreenState extends State<DomainFeedScreen>
     final feed = context.watch<FeedProvider>();
     final articles = feed.articlesFor(widget.domain);
 
-    if (feed.state == FeedState.loading && articles.isEmpty) return _ShimmerList();
+    if (feed.state == FeedState.loading && articles.isEmpty) return const _ShimmerList();
     if (feed.state == FeedState.error && articles.isEmpty) {
       return _ErrorView(
         message: feed.errorMessage ?? 'Something went wrong',
@@ -44,13 +44,13 @@ class _DomainFeedScreenState extends State<DomainFeedScreen>
 
     return RefreshIndicator(
       color: Colors.white,
-      backgroundColor: Colors.white.withValues(alpha: 0.15),
+      backgroundColor: AppColors.surface,
       onRefresh: () => feed.loadDomain(widget.domain),
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         itemCount: articles.length,
         itemBuilder: (ctx, i) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 10),
           child: _ArticleCard(article: articles[i]),
         ),
       ),
@@ -69,11 +69,6 @@ class _ArticleCard extends StatelessWidget {
     return '${diff.inDays}d ago';
   }
 
-  String _readingTime(Article article) {
-    final chars = article.summary.length;
-    return '${(chars / 200).ceil().clamp(1, 99)} min read';
-  }
-
   @override
   Widget build(BuildContext context) {
     final domainColor = AppColors.forDomain(article.domain);
@@ -85,57 +80,53 @@ class _ArticleCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.divider),
         ),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Domain color left bar
+              // Domain colour accent bar
               Container(
-                width: 4,
+                width: 3,
                 decoration: BoxDecoration(
                   color: domainColor,
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
                   ),
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: domainColor.withValues(alpha: 0.25),
+                              color: domainColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: domainColor.withValues(alpha: 0.4)),
                             ),
                             child: Text(
                               article.domain.toUpperCase(),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: domainColor,
                                 letterSpacing: 0.8,
                               ),
                             ),
                           ),
                           const Spacer(),
                           Text(
-                            '${_timeAgo(article.fetchedAt)}  ·  ${_readingTime(article)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.white.withValues(alpha: 0.55),
-                            ),
+                            _timeAgo(article.fetchedAt),
+                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                           ),
                         ],
                       ),
@@ -148,22 +139,22 @@ class _ArticleCard extends StatelessWidget {
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
-                          height: 1.35,
+                          height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(Icons.link, size: 12, color: Colors.white.withValues(alpha: 0.4)),
+                          const Icon(Icons.link, size: 11, color: AppColors.textMuted),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               article.sourceName,
-                              style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45)),
+                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios, size: 11, color: Colors.white.withValues(alpha: 0.35)),
+                          const Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
                         ],
                       ),
                     ],
@@ -179,21 +170,23 @@ class _ArticleCard extends StatelessWidget {
 }
 
 class _ShimmerList extends StatelessWidget {
+  const _ShimmerList();
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: 5,
+      itemCount: 6,
       itemBuilder: (ctx, i) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.only(bottom: 10),
         child: Shimmer.fromColors(
-          baseColor: Colors.white.withValues(alpha: 0.06),
-          highlightColor: Colors.white.withValues(alpha: 0.14),
+          baseColor: AppColors.surface,
+          highlightColor: AppColors.surfaceRaised,
           child: Container(
-            height: 110,
+            height: 100,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
@@ -215,13 +208,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.wifi_off, size: 48, color: Colors.white.withValues(alpha: 0.4)),
+            const Icon(Icons.wifi_off, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 16),
             const Text('Could not load articles',
                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Text(message,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                style: const TextStyle(color: AppColors.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
@@ -244,13 +237,13 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.article_outlined, size: 48, color: Colors.white.withValues(alpha: 0.4)),
+            const Icon(Icons.article_outlined, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 16),
             const Text('No articles yet',
                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text('Tap refresh to fetch the latest news',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            const Text('Tap refresh to fetch the latest news',
+                style: TextStyle(color: AppColors.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(

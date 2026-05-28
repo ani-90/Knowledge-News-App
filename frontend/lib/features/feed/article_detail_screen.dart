@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
@@ -45,53 +44,54 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     // Remove base64 images
     text = text.replaceAll(RegExp(r'!\[[^\]]*\]\(data:[^\)]+\)'), '');
 
-    // Strip table of contents blocks (heading + anchor-link list items)
+    // Strip "Related / See Also / Further reading" sections entirely
     text = text.replaceAll(
       RegExp(
-        r'#{1,4}\s*(table of contents|contents|toc|on this page|jump to|in this article|quick links)[^\n]*\n([ \t]*[-*\d.]+[ \t]+\[[^\]]*\]\(#[^\)]*\)\n?)+',
+        r'#{1,4}\s*(related|see also|further reading|more from|read more|read next|'
+        r'you might also|recommended|external links|references|sources|footnotes)[^\n]*\n(.*\n){0,20}',
         caseSensitive: false,
         multiLine: true,
       ),
       '',
     );
 
-    // Remove list items that are purely anchor links (ToC remnants)
+    // Strip ToC blocks (heading + anchor-link list)
     text = text.replaceAll(
-      RegExp(r'^[ \t]*[-*\d.]+\.?[ \t]+\[[^\]]+\]\(#[^\)]*\)[ \t]*$', multiLine: true),
+      RegExp(
+        r'#{1,4}\s*(table of contents|contents|toc|on this page|jump to|in this article|quick links)[^\n]*\n'
+        r'([ \t]*[-*\d.]+[ \t]+\[[^\]]*\]\(#[^\)]*\)\n?)+',
+        caseSensitive: false,
+        multiLine: true,
+      ),
       '',
     );
 
-    // Strip remaining inline anchor-only links
+    // Remove ALL list items that are purely links (anchor or external)
+    text = text.replaceAll(
+      RegExp(r'^[ \t]*[-*\d.]+\.?[ \t]+\[[^\]]+\]\([^\)]*\)[ \t]*$', multiLine: true),
+      '',
+    );
+
+    // Strip anchor-only inline links → keep just the text label
     text = text.replaceAllMapped(
       RegExp(r'\[([^\]]+)\]\(#[^\)]*\)'),
       (m) => m[1]!,
     );
 
-    // Make bare URLs into markdown links
-    text = text.replaceAllMapped(
-      RegExp(r'(?<!\()(?<!\[)(https?://[^\s\)\]<>"]+)'),
-      (m) => '[${m[1]}](${m[1]})',
+    // Remove lines that are only a markdown link (no surrounding prose)
+    text = text.replaceAll(
+      RegExp(r'^\[.*\]\(https?://[^\)]+\)[ \t]*$', multiLine: true),
+      '',
     );
 
-    // Remove lines that are purely a markdown link (nav menus, link dumps)
-    final lines = text.split('\n');
-    final cleaned = <String>[];
-    int consecutiveLinkLines = 0;
-    for (final line in lines) {
-      final trimmed = line.trim();
-      final isLinkOnly = RegExp(r'^\[.*\]\(.*\)$').hasMatch(trimmed) ||
-          RegExp(r'^[-*]\s+\[.*\]\(.*\)$').hasMatch(trimmed);
-      if (isLinkOnly) {
-        consecutiveLinkLines++;
-        if (consecutiveLinkLines <= 1) cleaned.add(line);
-      } else {
-        consecutiveLinkLines = 0;
-        cleaned.add(line);
-      }
-    }
+    // Remove lines that are a bare URL only
+    text = text.replaceAll(
+      RegExp(r'^https?://\S+[ \t]*$', multiLine: true),
+      '',
+    );
 
-    // Collapse 3+ blank lines into 2
-    return cleaned.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+    // Collapse 3+ blank lines → 2
+    return text.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
   }
 
   Future<void> _openUrl(String url) async {
@@ -102,20 +102,25 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   }
 
   MarkdownStyleSheet _contentStyle(Color domainColor) => MarkdownStyleSheet(
-        p: const TextStyle(fontSize: 15, height: 1.75, color: Colors.white),
+        p: const TextStyle(fontSize: 15, height: 1.8, color: Colors.white),
         h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, height: 1.8),
-        h2: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white, height: 1.8),
-        h3: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, height: 1.7),
-        h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, height: 1.7),
+        h2: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white, height: 1.7),
+        h3: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, height: 1.6),
+        h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, height: 1.6),
         strong: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
-        a: TextStyle(color: AppColors.accent, decoration: TextDecoration.underline),
-        blockquote: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6), fontStyle: FontStyle.italic),
-        code: TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Colors.white.withValues(alpha: 0.10)),
+        em: const TextStyle(fontStyle: FontStyle.italic, color: AppColors.textSecondary),
+        a: const TextStyle(color: AppColors.accent, decoration: TextDecoration.underline),
+        blockquote: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+        code: const TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: AppColors.surfaceRaised, color: Colors.white),
+        blockquoteDecoration: const BoxDecoration(
+          border: Border(left: BorderSide(color: AppColors.divider, width: 3)),
+          color: AppColors.surfaceRaised,
+        ),
       );
 
-  MarkdownStyleSheet _summaryStyle() => MarkdownStyleSheet(
-        p: TextStyle(fontSize: 14, height: 1.65, color: Colors.white.withValues(alpha: 0.9)),
-        strong: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+  MarkdownStyleSheet _summaryStyle() => const MarkdownStyleSheet(
+        p: TextStyle(fontSize: 14, height: 1.7, color: AppColors.textSecondary),
+        strong: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
       );
 
   @override
@@ -123,26 +128,15 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     final domainColor = AppColors.forDomain(_article.domain);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(color: domainColor.withValues(alpha: 0.35)),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surface,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               _article.domain.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 1.4,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
+              style: const TextStyle(fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: AppColors.textMuted),
             ),
             Text(
               _article.title,
@@ -151,6 +145,10 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: Container(height: 2, color: domainColor),
         ),
         actions: [
           if (!_showSummary)
@@ -161,7 +159,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.auto_awesome, color: Colors.white),
+                  : const Icon(Icons.auto_awesome),
               tooltip: 'Summarize',
               onPressed: _summarizing ? null : () => _handleSummarize(domainColor),
             ),
@@ -182,9 +180,9 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                 children: [
                   FloatingActionButton.extended(
                     heroTag: 'debate_fab',
-                    backgroundColor: Colors.white.withValues(alpha: 0.12),
+                    backgroundColor: AppColors.surfaceRaised,
                     foregroundColor: Colors.white,
-                    elevation: 0,
+                    elevation: 2,
                     onPressed: () {
                       context.read<DebateProvider>().reset(_article.id);
                       Navigator.push(
@@ -194,27 +192,24 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                         ),
                       );
                     },
-                    icon: Icon(Icons.forum_outlined, color: domainColor),
+                    icon: Icon(Icons.forum_outlined, color: domainColor, size: 18),
                     label: Text('Debate', style: TextStyle(color: domainColor, fontWeight: FontWeight.w600)),
                   ),
                   FloatingActionButton.extended(
                     heroTag: 'quiz_fab',
                     backgroundColor: domainColor,
                     foregroundColor: Colors.white,
-                    elevation: 0,
+                    elevation: 2,
                     onPressed: () {
                       context.read<QuizProvider>().reset();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => QuizScreen(
-                            articleId: _article.id,
-                            articleTitle: _article.title,
-                          ),
+                          builder: (_) => QuizScreen(articleId: _article.id, articleTitle: _article.title),
                         ),
                       );
                     },
-                    icon: const Icon(Icons.quiz),
+                    icon: const Icon(Icons.quiz, size: 18),
                     label: const Text('Quiz', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ],
@@ -227,32 +222,24 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title (sticky in AppBar, also shown large here for reading context)
                   Text(
                     _article.title,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      height: 1.35,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.35, color: Colors.white),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.source, size: 12, color: Colors.white.withValues(alpha: 0.45)),
+                      const Icon(Icons.source, size: 12, color: AppColors.textMuted),
                       const SizedBox(width: 4),
-                      Text(_article.sourceName,
-                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5))),
+                      Text(_article.sourceName, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                       const Spacer(),
-                      Text(_formatDate(_article.fetchedAt),
-                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5))),
+                      Text(_formatDate(_article.fetchedAt), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                     ],
                   ),
 
-                  // Summary section — shown at top when triggered
+                  // Summary — shown at top when triggered
                   AnimatedSize(
-                    duration: const Duration(milliseconds: 350),
+                    duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
                     child: _showSummary
                         ? _SummarySection(
@@ -265,10 +252,9 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                   ),
 
                   const SizedBox(height: 20),
-                  Divider(color: Colors.white.withValues(alpha: 0.12)),
+                  const Divider(color: AppColors.divider),
                   const SizedBox(height: 16),
 
-                  // Full article content
                   if (_article.hasFullContent) ...[
                     MarkdownBody(
                       data: _cleanContent(_article.rawContent),
@@ -278,27 +264,27 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // Paywalled notice
                   if (!_article.hasFullContent)
                     GestureDetector(
                       onTap: () => _openUrl(_article.sourceUrl),
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.06),
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                          border: Border.all(color: AppColors.divider),
                         ),
-                        child: Row(
+                        child: const Row(
                           children: [
-                            Icon(Icons.lock_outline, size: 14, color: Colors.white.withValues(alpha: 0.5)),
-                            const SizedBox(width: 8),
+                            Icon(Icons.lock_outline, size: 14, color: AppColors.textMuted),
+                            SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Full article unavailable (paywalled). Tap to read on source.',
-                                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55)),
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                               ),
                             ),
+                            Icon(Icons.open_in_new, size: 13, color: AppColors.textMuted),
                           ],
                         ),
                       ),
@@ -351,27 +337,21 @@ class _SummarySection extends StatelessWidget {
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border(left: BorderSide(color: domainColor, width: 3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(width: 3, height: 16, color: domainColor),
-              const SizedBox(width: 8),
-              Text(
-                'AI SUMMARY',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white.withValues(alpha: 0.5),
-                  letterSpacing: 1.4,
-                ),
-              ),
-            ],
+          Text(
+            'AI SUMMARY',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: domainColor,
+              letterSpacing: 1.4,
+            ),
           ),
           const SizedBox(height: 10),
           MarkdownBody(
