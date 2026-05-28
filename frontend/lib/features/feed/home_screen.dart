@@ -26,21 +26,36 @@ class HomeScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: AppColors.surface,
           surfaceTintColor: Colors.transparent,
-          toolbarHeight: 0,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(74),
-            child: Row(
+          titleSpacing: 16,
+          title: RichText(
+            text: const TextSpan(
               children: [
-                Expanded(
-                  child: TabBar(
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    tabs: _domains.map((d) => Tab(icon: Icon(d.$3, size: 18), text: d.$2)).toList(),
+                TextSpan(
+                  text: 'Rudh ',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                _RefreshButton(),
+                TextSpan(
+                  text: 'Reads',
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
               ],
             ),
+          ),
+          actions: [_RefreshButton()],
+          bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: _domains.map((d) => Tab(icon: Icon(d.$3, size: 18), text: d.$2)).toList(),
           ),
         ),
         body: Column(
