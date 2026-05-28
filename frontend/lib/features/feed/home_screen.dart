@@ -42,13 +42,10 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             actions: [_RefreshButton()],
-            bottom: const TabBar(
+            bottom: TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              tabs: [
-                for (final d in _domains)
-                  Tab(icon: Icon(d.$3, size: 18), text: d.$2),
-              ],
+              tabs: _domains.map((d) => Tab(icon: Icon(d.$3, size: 18), text: d.$2)).toList(),
             ),
           ),
         ),

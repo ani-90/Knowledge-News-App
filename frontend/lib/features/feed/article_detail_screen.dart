@@ -118,9 +118,9 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
         ),
       );
 
-  MarkdownStyleSheet _summaryStyle() => const MarkdownStyleSheet(
-        p: TextStyle(fontSize: 14, height: 1.7, color: AppColors.textSecondary),
-        strong: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+  MarkdownStyleSheet _summaryStyle() => MarkdownStyleSheet(
+        p: const TextStyle(fontSize: 14, height: 1.7, color: AppColors.textSecondary),
+        strong: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
       );
 
   @override
