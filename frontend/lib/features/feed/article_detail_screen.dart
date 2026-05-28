@@ -42,16 +42,41 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   }
 
   String _cleanContent(String text) {
+    // Remove base64 images
     text = text.replaceAll(RegExp(r'!\[[^\]]*\]\(data:[^\)]+\)'), '');
+    // Strip anchor-only links like [text](#section)
     text = text.replaceAllMapped(
       RegExp(r'\[([^\]]+)\]\(#[^\)]*\)'),
       (m) => m[1]!,
     );
+    // Make bare URLs into markdown links
     text = text.replaceAllMapped(
       RegExp(r'(?<!\()(?<!\[)(https?://[^\s\)\]<>"]+)'),
       (m) => '[${m[1]}](${m[1]})',
     );
-    return text.trim();
+    // Collapse runs of 3+ consecutive link-only lines (navigation menus, link lists)
+    text = text.replaceAll(
+      RegExp(r'(\n\s*\[[^\]]+\]\([^\)]+\)\s*){3,}', multiLine: true),
+      '\n',
+    );
+    // Remove lines that are purely a markdown link with no surrounding prose
+    final lines = text.split('\n');
+    final cleaned = <String>[];
+    int consecutiveLinkLines = 0;
+    for (final line in lines) {
+      final trimmed = line.trim();
+      final isLinkOnly = RegExp(r'^\[.*\]\(.*\)$').hasMatch(trimmed) ||
+          RegExp(r'^\*\s*\[.*\]\(.*\)$').hasMatch(trimmed) ||
+          RegExp(r'^-\s*\[.*\]\(.*\)$').hasMatch(trimmed);
+      if (isLinkOnly) {
+        consecutiveLinkLines++;
+        if (consecutiveLinkLines <= 2) cleaned.add(line); // keep first 2, drop the rest
+      } else {
+        consecutiveLinkLines = 0;
+        cleaned.add(line);
+      }
+    }
+    return cleaned.join('\n').trim();
   }
 
   Future<void> _openUrl(String url) async {
@@ -97,6 +122,18 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
           style: const TextStyle(fontSize: 13, letterSpacing: 1.2, fontWeight: FontWeight.w600),
         ),
         actions: [
+          if (!_showSummary)
+            IconButton(
+              icon: _summarizing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.auto_awesome, color: Colors.white),
+              tooltip: 'Summarize',
+              onPressed: _summarizing ? null : () => _handleSummarize(domainColor),
+            ),
           IconButton(
             icon: const Icon(Icons.open_in_browser),
             tooltip: 'Open source',
@@ -175,31 +212,6 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
-
-                  // Summarize button
-                  if (!_showSummary)
-                    OutlinedButton.icon(
-                      icon: _summarizing
-                          ? SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: domainColor,
-                              ),
-                            )
-                          : Icon(Icons.auto_awesome, size: 16, color: domainColor),
-                      label: Text(
-                        _summarizing ? 'Generating...' : 'Summarize',
-                        style: TextStyle(color: domainColor, fontWeight: FontWeight.w600),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: domainColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      ),
-                      onPressed: _summarizing ? null : () => _handleSummarize(domainColor),
-                    ),
 
                   // Summary section (animated in)
                   AnimatedSize(

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -84,101 +83,97 @@ class _ArticleCard extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (_) => ArticleDetailScreen(article: article)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.09),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Domain color left bar
-                  Container(
-                    width: 4,
-                    decoration: BoxDecoration(
-                      color: domainColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        bottomLeft: Radius.circular(16),
-                      ),
-                    ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.09),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Domain color left bar
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: domainColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: domainColor.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: domainColor.withValues(alpha: 0.4)),
-                                ),
-                                child: Text(
-                                  article.domain.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: domainColor.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: domainColor.withValues(alpha: 0.4)),
+                            ),
+                            child: Text(
+                              article.domain.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                letterSpacing: 0.8,
                               ),
-                              const Spacer(),
-                              Text(
-                                '${_timeAgo(article.fetchedAt)}  ·  ${_readingTime(article)}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white.withValues(alpha: 0.55),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            article.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              height: 1.35,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Icon(Icons.link, size: 12, color: Colors.white.withValues(alpha: 0.4)),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  article.sourceName,
-                                  style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45)),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Icon(Icons.arrow_forward_ios, size: 11, color: Colors.white.withValues(alpha: 0.35)),
-                            ],
+                          const Spacer(),
+                          Text(
+                            '${_timeAgo(article.fetchedAt)}  ·  ${_readingTime(article)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white.withValues(alpha: 0.55),
+                            ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      Text(
+                        article.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.link, size: 12, color: Colors.white.withValues(alpha: 0.4)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              article.sourceName,
+                              style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios, size: 11, color: Colors.white.withValues(alpha: 0.35)),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
+        ),
+      ),
         ),
       ),
     );
