@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from langgraph.graph import StateGraph, START, END
 
@@ -24,21 +25,30 @@ _AGENT_MAP = {
 }
 
 
-def run_all_agents_node(state: PipelineState) -> dict:
-    """Run each requested domain agent sequentially to stay within Groq rate limits."""
-    all_articles = []
-    all_errors = []
+async def run_all_agents_node(state: PipelineState) -> dict:
+    """Run all domain agents in parallel using a thread-pool executor."""
+    loop = asyncio.get_event_loop()
 
-    for domain in state["domains_requested"]:
+    def run_single(domain: str) -> dict:
         agent = _AGENT_MAP.get(domain)
         if not agent:
-            logger.warning("Unknown domain requested: %s", domain)
-            continue
-        logger.info("Running agent: %s", domain)
+            logger.warning("Unknown domain: %s", domain)
+            return {"raw_articles": [], "errors": []}
+        logger.info("Agent starting: %s", domain)
         result = agent.run(state)
-        all_articles.extend(result.get("raw_articles", []))
-        all_errors.extend(result.get("errors", []))
-        logger.info("Agent %s done — %d articles, %d errors", domain, len(result.get("raw_articles", [])), len(result.get("errors", [])))
+        logger.info("Agent done: %s — %d articles", domain, len(result.get("raw_articles", [])))
+        return result
+
+    tasks = [
+        loop.run_in_executor(None, run_single, domain)
+        for domain in state["domains_requested"]
+    ]
+    results = await asyncio.gather(*tasks)
+
+    all_articles, all_errors = [], []
+    for r in results:
+        all_articles.extend(r.get("raw_articles", []))
+        all_errors.extend(r.get("errors", []))
 
     return {"raw_articles": all_articles, "errors": all_errors}
 

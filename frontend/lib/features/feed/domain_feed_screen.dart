@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -33,23 +34,18 @@ class _DomainFeedScreenState extends State<DomainFeedScreen>
     final feed = context.watch<FeedProvider>();
     final articles = feed.articlesFor(widget.domain);
 
-    if (feed.state == FeedState.loading && articles.isEmpty) {
-      return _ShimmerList();
-    }
-
+    if (feed.state == FeedState.loading && articles.isEmpty) return _ShimmerList();
     if (feed.state == FeedState.error && articles.isEmpty) {
       return _ErrorView(
         message: feed.errorMessage ?? 'Something went wrong',
         onRetry: () => feed.loadDomain(widget.domain),
       );
     }
-
-    if (articles.isEmpty) {
-      return _EmptyView(onRefresh: () => feed.triggerRefresh());
-    }
+    if (articles.isEmpty) return _EmptyView(onRefresh: () => feed.triggerRefresh());
 
     return RefreshIndicator(
-      color: AppColors.primary,
+      color: Colors.white,
+      backgroundColor: Colors.white.withValues(alpha: 0.15),
       onRefresh: () => feed.loadDomain(widget.domain),
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -75,61 +71,65 @@ class _ArticleCard extends StatelessWidget {
   }
 
   String _readingTime(Article article) {
-    final charCount = article.summary.length;
-    final mins = (charCount / 200).ceil().clamp(1, 99);
-    return '$mins min read';
+    final chars = article.summary.length;
+    return '${(chars / 200).ceil().clamp(1, 99)} min read';
   }
 
   @override
   Widget build(BuildContext context) {
     final domainColor = AppColors.forDomain(article.domain);
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ArticleDetailScreen(article: article),
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ArticleDetailScreen(article: article)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.09),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+            ),
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Left domain color bar
-                  Container(width: 4, color: domainColor),
-                  // Content
+                  // Domain color left bar
+                  Container(
+                    width: 4,
+                    decoration: BoxDecoration(
+                      color: domainColor,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        bottomLeft: Radius.circular(16),
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Top meta: domain badge + time
                           Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: domainColor.withValues(alpha: 0.1),
+                                  color: domainColor.withValues(alpha: 0.25),
                                   borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: domainColor.withValues(alpha: 0.4)),
                                 ),
                                 child: Text(
                                   article.domain.toUpperCase(),
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: domainColor,
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     letterSpacing: 0.8,
                                   ),
                                 ),
@@ -137,44 +137,38 @@ class _ArticleCard extends StatelessWidget {
                               const Spacer(),
                               Text(
                                 '${_timeAgo(article.fetchedAt)}  ·  ${_readingTime(article)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: AppColors.textSecondary,
+                                  color: Colors.white.withValues(alpha: 0.55),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 10),
-                          // Title
                           Text(
                             article.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: Colors.white,
                               height: 1.35,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          // Source row
                           Row(
                             children: [
-                              const Icon(Icons.link, size: 12, color: AppColors.textSecondary),
+                              Icon(Icons.link, size: 12, color: Colors.white.withValues(alpha: 0.4)),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   article.sourceName,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45)),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios,
-                                  size: 11, color: AppColors.textSecondary),
+                              Icon(Icons.arrow_forward_ios, size: 11, color: Colors.white.withValues(alpha: 0.35)),
                             ],
                           ),
                         ],
@@ -200,13 +194,13 @@ class _ShimmerList extends StatelessWidget {
       itemBuilder: (ctx, i) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Shimmer.fromColors(
-          baseColor: Colors.grey.shade200,
-          highlightColor: Colors.grey.shade50,
+          baseColor: Colors.white.withValues(alpha: 0.06),
+          highlightColor: Colors.white.withValues(alpha: 0.14),
           child: Container(
             height: 110,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
         ),
@@ -228,13 +222,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.wifi_off, size: 48, color: AppColors.textSecondary),
+            Icon(Icons.wifi_off, size: 48, color: Colors.white.withValues(alpha: 0.4)),
             const SizedBox(height: 16),
-            Text('Could not load articles',
-                style: Theme.of(context).textTheme.titleMedium),
+            const Text('Could not load articles',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Text(message,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
@@ -257,15 +251,14 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.article_outlined, size: 48, color: AppColors.textSecondary),
+            Icon(Icons.article_outlined, size: 48, color: Colors.white.withValues(alpha: 0.4)),
             const SizedBox(height: 16),
-            Text('No articles yet', style: Theme.of(context).textTheme.titleMedium),
+            const Text('No articles yet',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            const Text(
-              'Tap refresh to fetch the latest news',
-              style: TextStyle(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
+            Text('Tap refresh to fetch the latest news',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: onRefresh,

@@ -21,6 +21,17 @@ class Article {
 
   bool get hasFullContent => rawContent.length >= 500;
 
+  Article copyWith({String? summary, String? rawContent}) => Article(
+        id: id,
+        title: title,
+        summary: summary ?? this.summary,
+        rawContent: rawContent ?? this.rawContent,
+        domain: domain,
+        sourceUrl: sourceUrl,
+        sourceName: sourceName,
+        fetchedAt: fetchedAt,
+      );
+
   factory Article.fromJson(Map<String, dynamic> json) => Article(
         id: json['id'] as int? ?? 0,
         title: json['title'] as String,

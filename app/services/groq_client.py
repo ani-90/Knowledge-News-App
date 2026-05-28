@@ -97,6 +97,27 @@ def generate_quiz(summary: str) -> List[dict]:
         return []
 
 
+_QUERY_GEN_SYSTEM = (
+    "You are a news research assistant for educated Indian readers. "
+    "Return ONLY a valid JSON array of {n} diverse, specific search query strings "
+    "to find high-quality recent Indian news articles on the given domain. "
+    "Cover different angles: policy, people, events, data, global impact on India. "
+    "Avoid generic queries like 'India news'. Be specific and varied. "
+    "No markdown. Just the JSON array of strings."
+)
+
+
+def generate_queries(domain: str, n: int = 5) -> List[str]:
+    """Generate fresh, diverse Tavily search queries for a domain using the LLM."""
+    system = _QUERY_GEN_SYSTEM.format(n=n)
+    raw = _call(system, f"Domain: {domain}")
+    try:
+        queries = _extract_json(raw)
+        return queries[:n] if isinstance(queries, list) else []
+    except (json.JSONDecodeError, ValueError):
+        return []
+
+
 _DEBATE_SYSTEM = (
     "You are a sharp, intellectually honest debate partner who has read the article below. "
     "When the user challenges or contradicts the article's claims, engage earnestly: "

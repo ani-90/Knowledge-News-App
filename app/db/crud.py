@@ -64,6 +64,14 @@ def get_article(db: Session, article_id: int) -> Optional[Article]:
     return db.query(Article).filter(Article.id == article_id).first()
 
 
+def update_article_summary(db: Session, article_id: int, summary: str, tags: list) -> None:
+    db.query(Article).filter(Article.id == article_id).update({
+        "summary": summary,
+        "tags": json.dumps(tags),
+    })
+    db.commit()
+
+
 def get_articles_by_qdrant_ids(db: Session, qdrant_ids: List[str]) -> dict:
     """Return {qdrant_id: sqlite_id} for the given list of qdrant_ids."""
     rows = db.query(Article.qdrant_id, Article.id).filter(Article.qdrant_id.in_(qdrant_ids)).all()

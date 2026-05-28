@@ -25,7 +25,10 @@ class KnowledgeNewsApp extends StatelessWidget {
         title: 'Knowledge News',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        home: const HomeScreen(),
+        home: Container(
+          decoration: const BoxDecoration(gradient: AppGradients.background),
+          child: const HomeScreen(),
+        ),
       ),
     );
   }

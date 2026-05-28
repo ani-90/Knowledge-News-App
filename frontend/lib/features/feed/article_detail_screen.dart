@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   late Article _article;
   bool _loading = true;
   bool _showSummary = false;
+  bool _summarizing = false;
 
   @override
   void initState() {
@@ -60,20 +62,20 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   }
 
   MarkdownStyleSheet _contentStyle(Color domainColor) => MarkdownStyleSheet(
-        p: const TextStyle(fontSize: 15, height: 1.75, color: AppColors.textPrimary),
-        h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
-        h2: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
-        h3: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
-        h4: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
-        strong: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-        a: TextStyle(color: domainColor, decoration: TextDecoration.underline),
-        blockquote: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
-        code: const TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Color(0xFFEEEEEE)),
+        p: const TextStyle(fontSize: 15, height: 1.75, color: Colors.white),
+        h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white, height: 2),
+        h2: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.white, height: 2),
+        h3: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white, height: 1.8),
+        h4: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, height: 1.8),
+        strong: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+        a: TextStyle(color: AppColors.accent, decoration: TextDecoration.underline),
+        blockquote: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6), fontStyle: FontStyle.italic),
+        code: TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Colors.white.withValues(alpha: 0.12)),
       );
 
   MarkdownStyleSheet _summaryStyle() => MarkdownStyleSheet(
-        p: const TextStyle(fontSize: 15, height: 1.7, color: AppColors.textPrimary),
-        strong: const TextStyle(fontWeight: FontWeight.w600),
+        p: TextStyle(fontSize: 15, height: 1.7, color: Colors.white.withValues(alpha: 0.88)),
+        strong: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
       );
 
   @override
@@ -81,14 +83,12 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     final domainColor = AppColors.forDomain(_article.domain);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [domainColor, Color.lerp(domainColor, Colors.black, 0.2)!],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(color: domainColor.withValues(alpha: 0.45)),
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -118,20 +118,20 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       height: 1.35,
-                      color: AppColors.textPrimary,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 10),
                   // Meta row
                   Row(
                     children: [
-                      const Icon(Icons.source, size: 13, color: AppColors.textSecondary),
+                      Icon(Icons.source, size: 13, color: Colors.white.withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
                       Text(_article.sourceName,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55))),
                       const Spacer(),
                       Text(_formatDate(_article.fetchedAt),
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55))),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -179,9 +179,18 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                   // Summarize button
                   if (!_showSummary)
                     OutlinedButton.icon(
-                      icon: Icon(Icons.auto_awesome, size: 16, color: domainColor),
+                      icon: _summarizing
+                          ? SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: domainColor,
+                              ),
+                            )
+                          : Icon(Icons.auto_awesome, size: 16, color: domainColor),
                       label: Text(
-                        'Summarize',
+                        _summarizing ? 'Generating...' : 'Summarize',
                         style: TextStyle(color: domainColor, fontWeight: FontWeight.w600),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -189,7 +198,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
-                      onPressed: () => setState(() => _showSummary = true),
+                      onPressed: _summarizing ? null : () => _handleSummarize(domainColor),
                     ),
 
                   // Summary section (animated in)
@@ -218,6 +227,26 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     );
   }
 
+  Future<void> _handleSummarize(Color domainColor) async {
+    if (_article.summary.isNotEmpty) {
+      setState(() => _showSummary = true);
+      return;
+    }
+    setState(() => _summarizing = true);
+    try {
+      final summary = await FeedService().summarizeArticle(_article.id);
+      if (mounted) {
+        setState(() {
+          _article = _article.copyWith(summary: summary);
+          _showSummary = true;
+          _summarizing = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _summarizing = false);
+    }
+  }
+
   String _formatDate(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
 }
 
@@ -244,12 +273,12 @@ class _SummarySection extends StatelessWidget {
           children: [
             Container(width: 4, height: 20, color: domainColor),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'AI SUMMARY',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
+                color: Colors.white.withValues(alpha: 0.55),
                 letterSpacing: 1.2,
               ),
             ),
@@ -280,11 +309,20 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: _buildContent(context),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return SafeArea(
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.divider)),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
@@ -300,7 +338,7 @@ class _ActionBar extends StatelessWidget {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: loading ? AppColors.divider : domainColor),
+                  side: BorderSide(color: loading ? Colors.white24 : domainColor),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),

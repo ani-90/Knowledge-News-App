@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/feed_provider.dart';
@@ -22,48 +23,46 @@ class HomeScreen extends StatelessWidget {
     return DefaultTabController(
       length: _domains.length,
       child: Scaffold(
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryLight],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+        backgroundColor: Colors.transparent,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight + 48),
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: AppBar(
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                title: Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Knowledge ',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                      TextSpan(
+                        text: 'News',
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [_RefreshButton()],
+                bottom: TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: _domains
+                      .map((d) => Tab(icon: Icon(d.$3, size: 18), text: d.$2))
+                      .toList(),
+                ),
               ),
             ),
-          ),
-          title: Text.rich(
-            TextSpan(
-              children: [
-                const TextSpan(
-                  text: 'Knowledge ',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                TextSpan(
-                  text: 'News',
-                  style: TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [_RefreshButton()],
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: _domains
-                .map((d) => Tab(
-                      icon: Icon(d.$3, size: 18),
-                      text: d.$2,
-                    ))
-                .toList(),
           ),
         ),
         body: Column(
@@ -92,12 +91,9 @@ class _RefreshButton extends StatelessWidget {
           ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
             )
-          : const Icon(Icons.refresh),
+          : const Icon(Icons.refresh, color: Colors.white),
       tooltip: 'Refresh all domains',
       onPressed: feed.isRefreshing
           ? null
@@ -113,13 +109,10 @@ class _RefreshStatusBanner extends StatelessWidget {
     if (run == null) return const SizedBox.shrink();
 
     final (color, message) = switch (run.status) {
-      'running' => (AppColors.primary, 'Refreshing articles...'),
-      'success' => (
-          const Color(0xFF2E7D32),
-          'Done — ${run.articlesAdded ?? 0} new articles added'
-        ),
-      'partial' => (const Color(0xFFE65100), 'Partial refresh completed'),
-      _ => (const Color(0xFFC62828), 'Refresh failed'),
+      'running' => (Colors.white.withValues(alpha: 0.15), 'Refreshing articles...'),
+      'success' => (Colors.green.withValues(alpha: 0.25), 'Done — ${run.articlesAdded ?? 0} new articles added'),
+      'partial' => (Colors.orange.withValues(alpha: 0.25), 'Partial refresh completed'),
+      _ => (Colors.red.withValues(alpha: 0.25), 'Refresh failed'),
     };
 
     return AnimatedContainer(

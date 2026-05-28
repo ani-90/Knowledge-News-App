@@ -32,6 +32,11 @@ class FeedService {
     return Article.fromJson(res.data as Map<String, dynamic>);
   }
 
+  Future<String> summarizeArticle(int articleId) async {
+    final res = await _client.post('/api/feed/$articleId/summarize');
+    return res.data['summary'] as String;
+  }
+
   Future<PipelineRun> getRunStatus(String runId) async {
     final res = await _client.get('/api/feed/status/$runId');
     return PipelineRun.fromJson(res.data as Map<String, dynamic>);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/article.dart';
@@ -55,14 +56,12 @@ class _DebateScreenState extends State<DebateScreen> {
   Widget build(BuildContext context) {
     final domainColor = widget.domainColor;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [domainColor, Color.lerp(domainColor, Colors.black, 0.2)!],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(color: domainColor.withValues(alpha: 0.45)),
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -198,7 +197,7 @@ class _MessageBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isUser ? domainColor : const Color(0xFFF0F2F5),
+                color: isUser ? domainColor : Colors.white.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -211,7 +210,7 @@ class _MessageBubble extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  color: isUser ? Colors.white : AppColors.textPrimary,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -272,9 +271,9 @@ class _TypingBubbleState extends State<_TypingBubble> {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF0F2F5),
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
                 bottomRight: Radius.circular(16),
@@ -312,49 +311,54 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.divider)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                enabled: !disabled,
-                maxLines: null,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'Challenge a claim...',
-                  hintStyle: TextStyle(color: AppColors.textSecondary),
-                ),
-                onSubmitted: (_) => onSend(),
-              ),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
             ),
-            const SizedBox(width: 8),
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller,
-              builder: (_, value, __) {
-                final canSend = value.text.trim().isNotEmpty && !disabled;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  child: IconButton(
-                    onPressed: canSend ? onSend : null,
-                    icon: const Icon(Icons.send_rounded),
-                    color: domainColor,
-                    disabledColor: AppColors.divider,
-                    style: IconButton.styleFrom(
-                      backgroundColor: canSend ? domainColor.withValues(alpha: 0.1) : Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    enabled: !disabled,
+                    maxLines: null,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: 'Challenge a claim...',
                     ),
+                    onSubmitted: (_) => onSend(),
                   ),
-                );
-              },
+                ),
+                const SizedBox(width: 8),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: controller,
+                  builder: (_, value, __) {
+                    final canSend = value.text.trim().isNotEmpty && !disabled;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      child: IconButton(
+                        onPressed: canSend ? onSend : null,
+                        icon: const Icon(Icons.send_rounded),
+                        color: domainColor,
+                        disabledColor: Colors.white24,
+                        style: IconButton.styleFrom(
+                          backgroundColor: canSend ? domainColor.withValues(alpha: 0.2) : Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

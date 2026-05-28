@@ -8,6 +8,7 @@ from app.db.sqlite import get_db
 from app.db import crud
 from app.db.models import Article as ArticleModel
 from app.schemas.feed import FeedRefreshRequest, FeedRefreshResponse, ArticleResponse, ArticleDetailResponse, FeedResponse
+from app.services import groq_client
 from app.config import DOMAINS
 
 router = APIRouter(prefix="/api/feed", tags=["feed"])
@@ -139,6 +140,18 @@ def get_article_detail(article_id: int, db: Session = Depends(get_db)):
         tags=json.loads(article.tags or "[]"),
         fetched_at=article.fetched_at,
     )
+
+
+@router.post("/{article_id}/summarize")
+def summarize_article(article_id: int, db: Session = Depends(get_db)):
+    article = crud.get_article(db, article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    if article.summary and article.summary.strip():
+        return {"summary": article.summary, "cached": True}
+    result = groq_client.summarize(article.raw_content or "")
+    crud.update_article_summary(db, article_id, result["summary"], result.get("tags", []))
+    return {"summary": result["summary"], "cached": False}
 
 
 @router.post("/{article_id}/read")

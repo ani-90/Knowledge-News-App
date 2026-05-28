@@ -14,7 +14,8 @@ def search(query: str, max_results: int = None) -> List[dict]:
     try:
         response = _client.search(
             query=query,
-            search_depth="basic",
+            search_depth="advanced",
+            topic="news",
             max_results=max_results,
             include_raw_content=True,
         )

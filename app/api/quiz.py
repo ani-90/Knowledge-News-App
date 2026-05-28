@@ -25,6 +25,11 @@ def generate_quiz(request: QuizGenerateRequest, db: Session = Depends(get_db)):
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
 
+    if not article.summary or not article.summary.strip():
+        result = groq_client.summarize(article.raw_content or "")
+        crud.update_article_summary(db, article.id, result["summary"], result.get("tags", []))
+        article.summary = result["summary"]
+
     raw_questions = groq_client.generate_quiz(article.summary)
     if not raw_questions:
         raise HTTPException(status_code=422, detail="LLM failed to generate quiz questions")
