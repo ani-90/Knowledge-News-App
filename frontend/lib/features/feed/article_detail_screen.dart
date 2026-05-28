@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api/feed_service.dart';
 import '../../core/models/article.dart';
+import '../../core/providers/debate_provider.dart';
 import '../../core/providers/quiz_provider.dart';
 import '../../shared/theme/app_theme.dart';
+import '../debate/debate_screen.dart';
 import '../quiz/quiz_screen.dart';
 
 class ArticleDetailScreen extends StatefulWidget {
@@ -19,6 +21,7 @@ class ArticleDetailScreen extends StatefulWidget {
 class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   late Article _article;
   bool _loading = true;
+  bool _showSummary = false;
 
   @override
   void initState() {
@@ -36,17 +39,12 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     }
   }
 
-  /// Strip internal anchor links [text](#...) → text, data: image blobs,
-  /// and convert bare https:// URLs to markdown links.
   String _cleanContent(String text) {
-    // Remove data URI images (base64 blobs — can't render, just clutter)
     text = text.replaceAll(RegExp(r'!\[[^\]]*\]\(data:[^\)]+\)'), '');
-    // Strip TOC-style internal anchor links: [Section Name](#anchor) → Section Name
     text = text.replaceAllMapped(
       RegExp(r'\[([^\]]+)\]\(#[^\)]*\)'),
       (m) => m[1]!,
     );
-    // Convert bare URLs to clickable markdown links
     text = text.replaceAllMapped(
       RegExp(r'(?<!\()(?<!\[)(https?://[^\s\)\]<>"]+)'),
       (m) => '[${m[1]}](${m[1]})',
@@ -61,32 +59,42 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     }
   }
 
-  MarkdownStyleSheet _contentStyle() => MarkdownStyleSheet(
-    p: const TextStyle(fontSize: 15, height: 1.75, color: AppColors.textPrimary),
-    h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
-    h2: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
-    h3: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
-    h4: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
-    strong: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-    a: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
-    blockquote: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
-    code: const TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Color(0xFFEEEEEE)),
-  );
+  MarkdownStyleSheet _contentStyle(Color domainColor) => MarkdownStyleSheet(
+        p: const TextStyle(fontSize: 15, height: 1.75, color: AppColors.textPrimary),
+        h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
+        h2: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 2),
+        h3: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
+        h4: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.8),
+        strong: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+        a: TextStyle(color: domainColor, decoration: TextDecoration.underline),
+        blockquote: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+        code: const TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: Color(0xFFEEEEEE)),
+      );
 
   MarkdownStyleSheet _summaryStyle() => MarkdownStyleSheet(
-    p: const TextStyle(fontSize: 16, height: 1.7, color: AppColors.textPrimary),
-    strong: const TextStyle(fontWeight: FontWeight.w600),
-  );
+        p: const TextStyle(fontSize: 15, height: 1.7, color: AppColors.textPrimary),
+        strong: const TextStyle(fontWeight: FontWeight.w600),
+      );
 
   @override
   Widget build(BuildContext context) {
     final domainColor = AppColors.forDomain(_article.domain);
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: domainColor,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [domainColor, Color.lerp(domainColor, Colors.black, 0.2)!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         title: Text(
           _article.domain.toUpperCase(),
-          style: const TextStyle(fontSize: 14, letterSpacing: 1),
+          style: const TextStyle(fontSize: 13, letterSpacing: 1.2, fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
@@ -99,7 +107,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -108,16 +116,16 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                     _article.title,
                     style: const TextStyle(
                       fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      height: 1.3,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   // Meta row
                   Row(
                     children: [
-                      const Icon(Icons.source, size: 14, color: AppColors.textSecondary),
+                      const Icon(Icons.source, size: 13, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(_article.sourceName,
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
@@ -126,80 +134,223 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
-                  const Divider(height: 32),
+                  const SizedBox(height: 24),
+                  const Divider(color: AppColors.divider),
+                  const SizedBox(height: 20),
 
                   // Full article content
                   if (_article.hasFullContent) ...[
                     MarkdownBody(
                       data: _cleanContent(_article.rawContent),
-                      styleSheet: _contentStyle(),
+                      styleSheet: _contentStyle(domainColor),
                       onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
                     ),
-                    const Divider(height: 40),
-                    const Text(
-                      'AI SUMMARY',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 28),
                   ],
 
-                  // AI Summary (always shown)
-                  MarkdownBody(
-                    data: _article.summary,
-                    styleSheet: _summaryStyle(),
-                    onTapLink: (_, href, __) { if (href != null) _openUrl(href); },
-                  ),
-
+                  // Paywalled notice
                   if (!_article.hasFullContent) ...[
-                    const SizedBox(height: 16),
                     GestureDetector(
                       onTap: () => _openUrl(_article.sourceUrl),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.lock_outline, size: 13, color: AppColors.textSecondary),
-                          SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Full article unavailable (paywalled or restricted). Tap to read on source.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                                decoration: TextDecoration.underline,
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.inputFill,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Full article unavailable (paywalled or restricted). Tap to read on source.',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 24),
                   ],
-                  const SizedBox(height: 80),
+
+                  // Summarize button
+                  if (!_showSummary)
+                    OutlinedButton.icon(
+                      icon: Icon(Icons.auto_awesome, size: 16, color: domainColor),
+                      label: Text(
+                        'Summarize',
+                        style: TextStyle(color: domainColor, fontWeight: FontWeight.w600),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: domainColor),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                      onPressed: () => setState(() => _showSummary = true),
+                    ),
+
+                  // Summary section (animated in)
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeInOut,
+                    child: _showSummary
+                        ? _SummarySection(
+                            summary: _article.summary,
+                            domainColor: domainColor,
+                            styleSheet: _summaryStyle(),
+                            onTapLink: _openUrl,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: domainColor,
-        onPressed: () => _startQuiz(context),
-        icon: const Icon(Icons.quiz, color: Colors.white),
-        label: const Text('Take Quiz',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  void _startQuiz(BuildContext context) {
-    context.read<QuizProvider>().reset();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => QuizScreen(articleId: _article.id, articleTitle: _article.title),
+      bottomNavigationBar: _ActionBar(
+        article: _article,
+        domainColor: domainColor,
+        loading: _loading,
       ),
     );
   }
 
   String _formatDate(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
+}
+
+class _SummarySection extends StatelessWidget {
+  final String summary;
+  final Color domainColor;
+  final MarkdownStyleSheet styleSheet;
+  final Future<void> Function(String) onTapLink;
+
+  const _SummarySection({
+    required this.summary,
+    required this.domainColor,
+    required this.styleSheet,
+    required this.onTapLink,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Container(width: 4, height: 20, color: domainColor),
+            const SizedBox(width: 10),
+            const Text(
+              'AI SUMMARY',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        MarkdownBody(
+          data: summary,
+          styleSheet: styleSheet,
+          onTapLink: (_, href, __) { if (href != null) onTapLink(href); },
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _ActionBar extends StatelessWidget {
+  final Article article;
+  final Color domainColor;
+  final bool loading;
+
+  const _ActionBar({
+    required this.article,
+    required this.domainColor,
+    required this.loading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppColors.divider)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: Icon(Icons.forum_outlined, size: 16, color: loading ? null : domainColor),
+                label: Text(
+                  'Debate',
+                  style: TextStyle(
+                    color: loading ? null : domainColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: loading ? AppColors.divider : domainColor),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: loading
+                    ? null
+                    : () {
+                        context.read<DebateProvider>().reset(article.id);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DebateScreen(
+                              article: article,
+                              domainColor: domainColor,
+                            ),
+                          ),
+                        );
+                      },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.quiz, size: 16),
+                label: const Text('Take Quiz', style: TextStyle(fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: loading ? null : domainColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 0,
+                ),
+                onPressed: loading
+                    ? null
+                    : () {
+                        context.read<QuizProvider>().reset();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => QuizScreen(
+                              articleId: article.id,
+                              articleTitle: article.title,
+                            ),
+                          ),
+                        );
+                      },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

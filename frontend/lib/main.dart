@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/providers/debate_provider.dart';
 import 'core/providers/feed_provider.dart';
 import 'core/providers/quiz_provider.dart';
 import 'features/feed/home_screen.dart';
@@ -18,6 +19,7 @@ class KnowledgeNewsApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => FeedProvider()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
+        ChangeNotifierProvider(create: (_) => DebateProvider()),
       ],
       child: MaterialApp(
         title: 'Knowledge News',

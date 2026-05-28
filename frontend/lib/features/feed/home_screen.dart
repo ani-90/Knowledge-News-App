@@ -23,9 +23,36 @@ class HomeScreen extends StatelessWidget {
       length: _domains.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Knowledge News',
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryLight],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          title: Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(
+                  text: 'Knowledge ',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                TextSpan(
+                  text: 'News',
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [_RefreshButton()],
           bottom: TabBar(
@@ -87,10 +114,12 @@ class _RefreshStatusBanner extends StatelessWidget {
 
     final (color, message) = switch (run.status) {
       'running' => (AppColors.primary, 'Refreshing articles...'),
-      'success' => (Colors.green.shade700,
-          'Done — ${run.articlesAdded ?? 0} new articles added'),
-      'partial' => (Colors.orange.shade700, 'Partial refresh completed'),
-      _ => (Colors.red.shade700, 'Refresh failed'),
+      'success' => (
+          const Color(0xFF2E7D32),
+          'Done — ${run.articlesAdded ?? 0} new articles added'
+        ),
+      'partial' => (const Color(0xFFE65100), 'Partial refresh completed'),
+      _ => (const Color(0xFFC62828), 'Refresh failed'),
     };
 
     return AnimatedContainer(
@@ -100,7 +129,7 @@ class _RefreshStatusBanner extends StatelessWidget {
       width: double.infinity,
       child: Text(
         message,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
         textAlign: TextAlign.center,
       ),
     );

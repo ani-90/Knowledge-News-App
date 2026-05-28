@@ -35,25 +35,30 @@ _QUIZ_SYSTEM = (
 )
 
 
-def _call(system: str, user: str) -> str:
-    with _semaphore:  # at most 2 concurrent Groq calls across all agents
-      for attempt in range(_MAX_RETRIES):
-        try:
-            response = _client.chat.completions.create(
-                model=settings.groq_model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                max_tokens=settings.groq_max_tokens,
-                temperature=0.3,
-            )
-            return response.choices[0].message.content.strip()
-        except RateLimitError:
-            wait = _RETRY_BASE_SECONDS * (2 ** attempt)
-            logger.warning("Groq 429 rate limit — waiting %ds (attempt %d/%d)", wait, attempt + 1, _MAX_RETRIES)
-            time.sleep(wait)
+def _call_messages(messages: list) -> str:
+    """Low-level: send an arbitrary messages array to Groq, with semaphore + retry."""
+    with _semaphore:
+        for attempt in range(_MAX_RETRIES):
+            try:
+                response = _client.chat.completions.create(
+                    model=settings.groq_model,
+                    messages=messages,
+                    max_tokens=settings.groq_max_tokens,
+                    temperature=0.3,
+                )
+                return response.choices[0].message.content.strip()
+            except RateLimitError:
+                wait = _RETRY_BASE_SECONDS * (2 ** attempt)
+                logger.warning("Groq 429 rate limit — waiting %ds (attempt %d/%d)", wait, attempt + 1, _MAX_RETRIES)
+                time.sleep(wait)
     raise RuntimeError(f"Groq rate limit exceeded after {_MAX_RETRIES} retries")
+
+
+def _call(system: str, user: str) -> str:
+    return _call_messages([
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ])
 
 
 def _extract_json(text: str):
@@ -90,3 +95,22 @@ def generate_quiz(summary: str) -> List[dict]:
         return questions[:3]
     except (json.JSONDecodeError, ValueError):
         return []
+
+
+_DEBATE_SYSTEM = (
+    "You are a sharp, intellectually honest debate partner who has read the article below. "
+    "When the user challenges or contradicts the article's claims, engage earnestly: "
+    "cite specific passages, concede valid points, push back where warranted. "
+    "Keep replies to 2-3 paragraphs. Be direct, not sycophantic.\n\n"
+    "ARTICLE TITLE: {title}\n\n"
+    "ARTICLE CONTENT:\n{content}"
+)
+
+
+def debate_reply(article_title: str, article_content: str, history: List[dict], user_message: str) -> str:
+    """Returns a plain-text debate response grounded in the article content."""
+    system = _DEBATE_SYSTEM.format(title=article_title, content=article_content[:3000])
+    messages = [{"role": "system", "content": system}]
+    messages.extend(history)
+    messages.append({"role": "user", "content": user_message})
+    return _call_messages(messages)

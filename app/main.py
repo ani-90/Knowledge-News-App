@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.sqlite import init_db
-from app.api import feed, quiz, user
+from app.api import feed, quiz, user, debate
 
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ app.add_middleware(
 app.include_router(feed.router)
 app.include_router(quiz.router)
 app.include_router(user.router)
+app.include_router(debate.router)
 
 
 @app.get("/health")
