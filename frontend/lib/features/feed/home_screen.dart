@@ -9,7 +9,7 @@ const _domains = [
   ('politics', 'Politics', Icons.account_balance),
   ('ai_tech', 'AI & Tech', Icons.computer),
   ('law', 'Law', Icons.gavel),
-  ('health', 'Health', Icons.favorite),
+  ('health', 'Health', Icons.favorite_border),
   ('fashion', 'Fashion', Icons.style),
   ('dharma', 'Dharma', Icons.self_improvement),
 ];
@@ -27,25 +27,32 @@ class HomeScreen extends StatelessWidget {
           preferredSize: const Size.fromHeight(kToolbarHeight + 48),
           child: AppBar(
             backgroundColor: AppColors.surface,
-            title: Text.rich(
-              TextSpan(
+            surfaceTintColor: Colors.transparent,
+            title: Row(
+              children: [
+                const Text(
+                  'Knowledge ',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w300),
+                ),
+                Text(
+                  'News',
+                  style: TextStyle(color: AppColors.accent, fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            actions: [_RefreshButton()],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(49),
+              child: Column(
                 children: [
-                  const TextSpan(
-                    text: 'Knowledge ',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w300),
-                  ),
-                  TextSpan(
-                    text: 'News',
-                    style: TextStyle(color: AppColors.accent, fontSize: 20, fontWeight: FontWeight.w700),
+                  const Divider(height: 1),
+                  TabBar(
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    tabs: _domains.map((d) => Tab(icon: Icon(d.$3, size: 18), text: d.$2)).toList(),
                   ),
                 ],
               ),
-            ),
-            actions: [_RefreshButton()],
-            bottom: TabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              tabs: _domains.map((d) => Tab(icon: Icon(d.$3, size: 18), text: d.$2)).toList(),
             ),
           ),
         ),
@@ -70,12 +77,12 @@ class _RefreshButton extends StatelessWidget {
     final feed = context.watch<FeedProvider>();
     return IconButton(
       icon: feed.isRefreshing
-          ? const SizedBox(
+          ? SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              child: CircularProgressIndicator(color: AppColors.accent, strokeWidth: 2),
             )
-          : const Icon(Icons.refresh, color: Colors.white),
+          : const Icon(Icons.refresh),
       tooltip: 'Refresh all domains',
       onPressed: feed.isRefreshing ? null : () => context.read<FeedProvider>().triggerRefresh(),
     );
@@ -89,27 +96,27 @@ class _RefreshStatusBanner extends StatelessWidget {
     if (run == null) return const SizedBox.shrink();
 
     final minutesAgo = run.lastRefreshedMinutesAgo;
-    final (color, message) = switch (run.status) {
-      'running' => (const Color(0xFF1C2030), 'Refreshing articles...'),
-      'success' => (const Color(0xFF1A3A2A), 'Done — ${run.articlesAdded ?? 0} new articles added'),
-      'partial'  => (const Color(0xFF3A2A10), 'Partial refresh — ${run.articlesAdded ?? 0} new articles'),
+    final (color, textColor, message) = switch (run.status) {
+      'running' => (const Color(0xFFEFF6FF), const Color(0xFF1D4ED8), 'Refreshing articles...'),
+      'success' => (const Color(0xFFF0FDF4), const Color(0xFF16A34A), 'Done — ${run.articlesAdded ?? 0} new articles added'),
+      'partial'  => (const Color(0xFFFFFBEB), const Color(0xFFD97706), 'Partial refresh — ${run.articlesAdded ?? 0} new articles'),
       'skipped'  => (
-          AppColors.surface,
+          AppColors.surfaceRaised,
+          AppColors.textSecondary,
           minutesAgo != null && minutesAgo < 60
               ? 'Already up to date — refreshed ${minutesAgo}m ago'
-              : 'Already up to date — refreshed recently',
+              : 'Already up to date',
         ),
-      _ => (const Color(0xFF3A1A1A), 'Refresh failed'),
+      _ => (const Color(0xFFFEF2F2), const Color(0xFFDC2626), 'Refresh failed'),
     };
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+    return Container(
       color: color,
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 16),
       width: double.infinity,
       child: Text(
         message,
-        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+        style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.w500),
         textAlign: TextAlign.center,
       ),
     );

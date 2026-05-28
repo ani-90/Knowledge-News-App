@@ -44,7 +44,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     // Remove base64 images
     text = text.replaceAll(RegExp(r'!\[[^\]]*\]\(data:[^\)]+\)'), '');
 
-    // Strip "Related / See Also / Further reading" sections entirely
+    // Strip "Related / See Also / Further reading" sections
     text = text.replaceAll(
       RegExp(
         r'#{1,4}\s*(related|see also|further reading|more from|read more|read next|'
@@ -55,7 +55,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
       '',
     );
 
-    // Strip ToC blocks (heading + anchor-link list)
+    // Strip ToC blocks
     text = text.replaceAll(
       RegExp(
         r'#{1,4}\s*(table of contents|contents|toc|on this page|jump to|in this article|quick links)[^\n]*\n'
@@ -66,22 +66,22 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
       '',
     );
 
-    // Remove ALL list items that are purely links (anchor or external)
+    // Remove list items that are purely links
     text = text.replaceAll(
       RegExp(r'^[ \t]*[-*\d.]+\.?[ \t]+\[[^\]]+\]\([^\)]*\)[ \t]*$', multiLine: true),
       '',
     );
 
-    // Strip anchor-only inline links → keep just the text label
+    // Strip ALL external links → keep just the label text
     text = text.replaceAllMapped(
-      RegExp(r'\[([^\]]+)\]\(#[^\)]*\)'),
+      RegExp(r'\[([^\]]+)\]\(https?://[^\)]*\)'),
       (m) => m[1]!,
     );
 
-    // Remove lines that are only a markdown link (no surrounding prose)
-    text = text.replaceAll(
-      RegExp(r'^\[.*\]\(https?://[^\)]+\)[ \t]*$', multiLine: true),
-      '',
+    // Strip anchor-only inline links → keep just the label text
+    text = text.replaceAllMapped(
+      RegExp(r'\[([^\]]+)\]\(#[^\)]*\)'),
+      (m) => m[1]!,
     );
 
     // Remove lines that are a bare URL only
@@ -102,25 +102,26 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   }
 
   MarkdownStyleSheet _contentStyle(Color domainColor) => MarkdownStyleSheet(
-        p: const TextStyle(fontSize: 15, height: 1.8, color: Colors.white),
-        h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, height: 1.8),
-        h2: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white, height: 1.7),
-        h3: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, height: 1.6),
-        h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, height: 1.6),
-        strong: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+        p: const TextStyle(fontSize: 15, height: 1.8, color: AppColors.textPrimary),
+        h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 1.6),
+        h2: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 1.5),
+        h3: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.5),
+        h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.5),
+        strong: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
         em: const TextStyle(fontStyle: FontStyle.italic, color: AppColors.textSecondary),
-        a: const TextStyle(color: AppColors.accent, decoration: TextDecoration.underline),
+        a: const TextStyle(color: AppColors.textPrimary, decoration: TextDecoration.none),
         blockquote: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
-        code: const TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: AppColors.surfaceRaised, color: Colors.white),
+        code: const TextStyle(fontSize: 13, fontFamily: 'monospace', backgroundColor: AppColors.inputFill, color: AppColors.textPrimary),
         blockquoteDecoration: const BoxDecoration(
           border: Border(left: BorderSide(color: AppColors.divider, width: 3)),
-          color: AppColors.surfaceRaised,
+          color: AppColors.inputFill,
         ),
       );
 
   MarkdownStyleSheet _summaryStyle() => MarkdownStyleSheet(
         p: const TextStyle(fontSize: 14, height: 1.7, color: AppColors.textSecondary),
-        strong: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+        strong: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        a: const TextStyle(color: AppColors.textSecondary, decoration: TextDecoration.none),
       );
 
   @override
@@ -136,11 +137,11 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
           children: [
             Text(
               _article.domain.toUpperCase(),
-              style: const TextStyle(fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: domainColor),
             ),
             Text(
               _article.title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -154,10 +155,10 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
           if (!_showSummary)
             IconButton(
               icon: _summarizing
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: domainColor),
                     )
                   : const Icon(Icons.auto_awesome),
               tooltip: 'Summarize',
@@ -180,8 +181,8 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                 children: [
                   FloatingActionButton.extended(
                     heroTag: 'debate_fab',
-                    backgroundColor: AppColors.surfaceRaised,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: domainColor,
                     elevation: 2,
                     onPressed: () {
                       context.read<DebateProvider>().reset(_article.id);
@@ -224,7 +225,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                 children: [
                   Text(
                     _article.title,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.35, color: Colors.white),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.35, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -237,7 +238,6 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                     ],
                   ),
 
-                  // Summary — shown at top when triggered
                   AnimatedSize(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
@@ -246,13 +246,12 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                             summary: _article.summary,
                             domainColor: domainColor,
                             styleSheet: _summaryStyle(),
-                            onTapLink: _openUrl,
                           )
                         : const SizedBox.shrink(),
                   ),
 
                   const SizedBox(height: 20),
-                  const Divider(color: AppColors.divider),
+                  Divider(color: AppColors.divider),
                   const SizedBox(height: 16),
 
                   if (_article.hasFullContent) ...[
@@ -322,13 +321,11 @@ class _SummarySection extends StatelessWidget {
   final String summary;
   final Color domainColor;
   final MarkdownStyleSheet styleSheet;
-  final Future<void> Function(String) onTapLink;
 
   const _SummarySection({
     required this.summary,
     required this.domainColor,
     required this.styleSheet,
-    required this.onTapLink,
   });
 
   @override
@@ -337,7 +334,7 @@ class _SummarySection extends StatelessWidget {
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(8),
         border: Border(left: BorderSide(color: domainColor, width: 3)),
       ),
@@ -357,7 +354,6 @@ class _SummarySection extends StatelessWidget {
           MarkdownBody(
             data: summary,
             styleSheet: styleSheet,
-            onTapLink: (_, href, __) { if (href != null) onTapLink(href); },
           ),
         ],
       ),

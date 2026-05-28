@@ -43,8 +43,7 @@ class _DomainFeedScreenState extends State<DomainFeedScreen>
     if (articles.isEmpty) return _EmptyView(onRefresh: () => feed.triggerRefresh());
 
     return RefreshIndicator(
-      color: Colors.white,
-      backgroundColor: AppColors.surface,
+      color: AppColors.accent,
       onRefresh: () => feed.loadDomain(widget.domain),
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -83,90 +82,117 @@ class _ArticleCard extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.divider),
+          boxShadow: const [
+            BoxShadow(color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2)),
+          ],
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Domain colour accent bar
-              Container(
-                width: 3,
-                decoration: BoxDecoration(
-                  color: domainColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    bottomLeft: Radius.circular(12),
-                  ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Domain accent thumbnail panel
+            Container(
+              width: 72,
+              decoration: BoxDecoration(
+                color: domainColor.withValues(alpha: 0.12),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomLeft: Radius.circular(12),
                 ),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: domainColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              article.domain.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: domainColor,
-                                letterSpacing: 0.8,
-                              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: domainColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(_domainIcon(article.domain), size: 18, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            // Content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: domainColor.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            article.domain.toUpperCase().replaceAll('_', ' '),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: domainColor,
+                              letterSpacing: 0.6,
                             ),
                           ),
-                          const Spacer(),
-                          Text(
-                            _timeAgo(article.fetchedAt),
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        article.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          height: 1.4,
                         ),
+                        const Spacer(),
+                        Text(
+                          _timeAgo(article.fetchedAt),
+                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      article.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                        height: 1.4,
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.link, size: 11, color: AppColors.textMuted),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              article.sourceName,
-                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.link, size: 11, color: AppColors.textMuted),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            article.sourceName,
+                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  IconData _domainIcon(String domain) => switch (domain) {
+    'finance'  => Icons.trending_up,
+    'politics' => Icons.account_balance,
+    'ai_tech'  => Icons.computer,
+    'law'      => Icons.gavel,
+    'health'   => Icons.favorite_border,
+    'fashion'  => Icons.style,
+    'dharma'   => Icons.self_improvement,
+    _          => Icons.article,
+  };
 }
 
 class _ShimmerList extends StatelessWidget {
@@ -180,12 +206,12 @@ class _ShimmerList extends StatelessWidget {
       itemBuilder: (ctx, i) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: Shimmer.fromColors(
-          baseColor: AppColors.surface,
-          highlightColor: AppColors.surfaceRaised,
+          baseColor: const Color(0xFFE5E7EB),
+          highlightColor: const Color(0xFFF3F4F6),
           child: Container(
-            height: 100,
+            height: 96,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
           ),
@@ -211,11 +237,9 @@ class _ErrorView extends StatelessWidget {
             const Icon(Icons.wifi_off, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 16),
             const Text('Could not load articles',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text(message,
-                style: const TextStyle(color: AppColors.textSecondary),
-                textAlign: TextAlign.center),
+            Text(message, style: const TextStyle(color: AppColors.textSecondary), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
           ],
@@ -240,11 +264,10 @@ class _EmptyView extends StatelessWidget {
             const Icon(Icons.article_outlined, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 16),
             const Text('No articles yet',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             const Text('Tap refresh to fetch the latest news',
-                style: TextStyle(color: AppColors.textSecondary),
-                textAlign: TextAlign.center),
+                style: TextStyle(color: AppColors.textSecondary), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: onRefresh,

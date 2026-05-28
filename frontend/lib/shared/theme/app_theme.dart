@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-const _bg = Color(0xFF111318);
-const _surface = Color(0xFF1C1F26);
-const _surfaceRaised = Color(0xFF23262F);
-const _border = Color(0xFF2A2D35);
+const _bg = Color(0xFFF3F4F6);
+const _surface = Colors.white;
+const _surfaceRaised = Color(0xFFF8F9FB);
+const _border = Color(0xFFE5E7EB);
 
 class AppColors {
   static const primary = Color(0xFF1A237E);
@@ -14,20 +14,20 @@ class AppColors {
   static const surface = _surface;
   static const surfaceRaised = _surfaceRaised;
 
-  static const textPrimary = Colors.white;
-  static const textSecondary = Color(0xCCFFFFFF);
-  static const textMuted = Color(0x77FFFFFF);
+  static const textPrimary = Color(0xFF111827);
+  static const textSecondary = Color(0xFF6B7280);
+  static const textMuted = Color(0xFF9CA3AF);
   static const divider = _border;
   static const inputFill = _surfaceRaised;
 
   static const domainColors = <String, Color>{
-    'finance':  Color(0xFF2E7D32),
-    'politics': Color(0xFFAD1457),
-    'ai_tech':  Color(0xFF1565C0),
-    'law':      Color(0xFF6A1B9A),
-    'health':   Color(0xFF00695C),
-    'fashion':  Color(0xFFD84315),
-    'dharma':   Color(0xFFEF6C00),
+    'finance':  Color(0xFF16A34A),
+    'politics': Color(0xFFDB2777),
+    'ai_tech':  Color(0xFF2563EB),
+    'law':      Color(0xFF7C3AED),
+    'health':   Color(0xFF0D9488),
+    'fashion':  Color(0xFFEA580C),
+    'dharma':   Color(0xFFD97706),
   };
 
   static Color forDomain(String domain) => domainColors[domain] ?? primary;
@@ -36,25 +36,25 @@ class AppColors {
 class AppTheme {
   static ThemeData get light => ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
-          brightness: Brightness.dark,
+          brightness: Brightness.light,
           surface: _surface,
         ),
         scaffoldBackgroundColor: _bg,
         appBarTheme: const AppBarTheme(
           backgroundColor: _surface,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
           scrolledUnderElevation: 0,
-          systemOverlayStyle: SystemUiOverlayStyle.light,
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
           titleTextStyle: TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
-            letterSpacing: 0.2,
+            color: AppColors.textPrimary,
           ),
+          iconTheme: IconThemeData(color: AppColors.textPrimary),
         ),
         cardTheme: CardThemeData(
           elevation: 0,
@@ -67,8 +67,8 @@ class AppTheme {
         ),
         dividerTheme: const DividerThemeData(color: _border, space: 1),
         tabBarTheme: const TabBarThemeData(
-          labelColor: Colors.white,
-          unselectedLabelColor: Color(0x88FFFFFF),
+          labelColor: AppColors.textPrimary,
+          unselectedLabelColor: AppColors.textSecondary,
           labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           unselectedLabelStyle: TextStyle(fontSize: 13),
           indicator: UnderlineTabIndicator(
@@ -77,22 +77,22 @@ class AppTheme {
           indicatorSize: TabBarIndicatorSize.label,
         ),
         textTheme: const TextTheme(
-          displaySmall: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5, color: Colors.white),
-          headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white),
-          titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
-          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, height: 1.3),
-          bodyLarge: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, height: 1.75, color: Colors.white),
-          bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Color(0xCCFFFFFF)),
-          labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: Color(0x77FFFFFF)),
+          displaySmall: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5, color: AppColors.textPrimary),
+          headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+          bodyLarge: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, height: 1.75, color: AppColors.textPrimary),
+          bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
+          labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: AppColors.textMuted),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: _surfaceRaised,
-          hintStyle: const TextStyle(color: Color(0x55FFFFFF)),
+          hintStyle: const TextStyle(color: AppColors.textMuted),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: _border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
@@ -104,7 +104,6 @@ class AppTheme {
           ),
         ),
         splashFactory: InkRipple.splashFactory,
-        highlightColor: Colors.transparent,
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
@@ -117,7 +116,7 @@ class AppTheme {
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
+            foregroundColor: AppColors.textPrimary,
             side: const BorderSide(color: _border),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

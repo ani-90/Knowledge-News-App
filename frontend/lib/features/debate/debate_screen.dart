@@ -61,13 +61,13 @@ class _DebateScreenState extends State<DebateScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'DEBATE',
-              style: TextStyle(fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: domainColor),
             ),
             Text(
               widget.article.title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -94,11 +94,11 @@ class _DebateScreenState extends State<DebateScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.forum_outlined, size: 44, color: domainColor.withValues(alpha: 0.5)),
+                          Icon(Icons.forum_outlined, size: 44, color: domainColor.withValues(alpha: 0.4)),
                           const SizedBox(height: 16),
                           const Text(
                             'Challenge the article',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                           ),
                           const SizedBox(height: 8),
                           const Text(
@@ -131,16 +131,16 @@ class _DebateScreenState extends State<DebateScreen> {
 
               if (provider.error != null)
                 Container(
-                  color: const Color(0xFF3A1A1A),
+                  color: const Color(0xFFFEF2F2),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: const Row(
                     children: [
-                      Icon(Icons.error_outline, size: 16, color: Color(0xFFEF9A9A)),
+                      Icon(Icons.error_outline, size: 16, color: Color(0xFFDC2626)),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Failed to get a response. Please try again.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFFEF9A9A)),
+                          style: TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
                         ),
                       ),
                     ],
@@ -199,7 +199,11 @@ class _MessageBubble extends StatelessWidget {
               ),
               child: Text(
                 message.content,
-                style: const TextStyle(fontSize: 14, height: 1.5, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  color: isUser ? Colors.white : AppColors.textPrimary,
+                ),
               ),
             ),
           ),
@@ -314,7 +318,7 @@ class _InputBar extends StatelessWidget {
                 enabled: !disabled,
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(
                   hintText: 'Challenge a claim...',
                 ),
@@ -332,7 +336,7 @@ class _InputBar extends StatelessWidget {
                   color: domainColor,
                   disabledColor: AppColors.textMuted,
                   style: IconButton.styleFrom(
-                    backgroundColor: canSend ? domainColor.withValues(alpha: 0.15) : Colors.transparent,
+                    backgroundColor: canSend ? domainColor.withValues(alpha: 0.12) : Colors.transparent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 );
