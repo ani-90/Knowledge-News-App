@@ -89,7 +89,8 @@ class _ArticleCard extends StatelessWidget {
             BoxShadow(color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2)),
           ],
         ),
-        child: Row(
+        child: IntrinsicHeight(
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Domain accent thumbnail panel
@@ -181,6 +182,7 @@ class _ArticleCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
