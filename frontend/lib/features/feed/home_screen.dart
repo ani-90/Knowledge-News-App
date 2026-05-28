@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
           toolbarHeight: 0,
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
+            preferredSize: const Size.fromHeight(74),
             child: Row(
               children: [
                 Expanded(
