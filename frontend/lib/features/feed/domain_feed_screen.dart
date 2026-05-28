@@ -32,11 +32,14 @@ class _DomainFeedScreenState extends State<DomainFeedScreen>
     super.build(context);
     final feed = context.watch<FeedProvider>();
     final articles = feed.articlesFor(widget.domain);
+    final domainState = feed.stateFor(widget.domain);
 
-    if (feed.state == FeedState.loading && articles.isEmpty) return const _ShimmerList();
-    if (feed.state == FeedState.error && articles.isEmpty) {
+    if (domainState == FeedState.loading && articles.isEmpty) {
+      return const IgnorePointer(child: _ShimmerList());
+    }
+    if (domainState == FeedState.error && articles.isEmpty) {
       return _ErrorView(
-        message: feed.errorMessage ?? 'Something went wrong',
+        message: feed.errorFor(widget.domain) ?? 'Something went wrong',
         onRetry: () => feed.loadDomain(widget.domain),
       );
     }

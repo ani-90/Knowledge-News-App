@@ -10,29 +10,28 @@ class FeedProvider extends ChangeNotifier {
   final FeedService _service = FeedService();
 
   final Map<String, List<Article>> _articlesByDomain = {};
-  FeedState _state = FeedState.idle;
-  String? _errorMessage;
+  final Map<String, FeedState> _stateByDomain = {};
+  final Map<String, String> _errorByDomain = {};
   PipelineRun? _lastRun;
   bool _isRefreshing = false;
   Timer? _pollTimer;
 
-  FeedState get state => _state;
-  String? get errorMessage => _errorMessage;
   PipelineRun? get lastRun => _lastRun;
   bool get isRefreshing => _isRefreshing;
 
-  List<Article> articlesFor(String domain) =>
-      _articlesByDomain[domain] ?? [];
+  List<Article> articlesFor(String domain) => _articlesByDomain[domain] ?? [];
+  FeedState stateFor(String domain) => _stateByDomain[domain] ?? FeedState.idle;
+  String? errorFor(String domain) => _errorByDomain[domain];
 
   Future<void> loadDomain(String domain) async {
-    _state = FeedState.loading;
+    _stateByDomain[domain] = FeedState.loading;
     notifyListeners();
     try {
       _articlesByDomain[domain] = await _service.getFeed(domain: domain);
-      _state = FeedState.loaded;
+      _stateByDomain[domain] = FeedState.loaded;
     } catch (e) {
-      _state = FeedState.error;
-      _errorMessage = e.toString();
+      _stateByDomain[domain] = FeedState.error;
+      _errorByDomain[domain] = e.toString();
     }
     notifyListeners();
   }
