@@ -1,6 +1,6 @@
 # Rudh Reads
 
-An AI-powered daily reading app for educated Indian readers. Every morning at 7 AM IST, a LangGraph pipeline runs 7 domain agents in parallel — fetching, filtering, and summarising the day's most relevant news across Finance, Politics, AI & Tech, Law, Health, Fashion, and Dharma. This is a fully functional Flutter Mobile App in which the feed is surfaed with per-article quizzes and a grounded debate mode.
+An AI-powered daily reading app for educated Indian readers. Every morning at 7 AM IST, a LangGraph pipeline runs 7 domain agents in parallel — fetching, filtering, and summarising the day's most relevant news across Finance, Politics, AI & Tech, Law, Health, Fashion, and Dharma. This is a fully functional Flutter Mobile App in which the feed is surfaced with per-article quizzes and a grounded debate mode.
 
 
 ---
