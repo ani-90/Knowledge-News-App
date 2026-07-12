@@ -1,6 +1,7 @@
 # Rudh Reads
 
-An AI-powered daily reading app for educated Indian readers. Every morning at 7 AM IST, a LangGraph pipeline runs 7 domain agents in parallel — fetching, filtering, and summarising the day's most relevant news across Finance, Politics, AI & Tech, Law, Health, Fashion, and Dharma. A Flutter mobile app surfaces the feed with per-article quizzes and a grounded debate mode.
+An AI-powered daily reading app for educated Indian readers. Every morning at 7 AM IST, a LangGraph pipeline runs 7 domain agents in parallel — fetching, filtering, and summarising the day's most relevant news across Finance, Politics, AI & Tech, Law, Health, Fashion, and Dharma. This is a fully functional Flutter Mobile App in which the feed is surfaed with per-article quizzes and a grounded debate mode.
+
 
 ---
 
@@ -8,38 +9,17 @@ An AI-powered daily reading app for educated Indian readers. Every morning at 7 
 
 **Daily feed** — Articles are fetched from Tavily Search and NewsAPI, scraped for full content via trafilatura, filtered for quality, deduplicated, summarised by Groq (Llama 3.3 70B), and stored. The pipeline runs automatically at 07:00 IST or can be triggered on demand from the app.
 
-**Quiz** — For any article, the app generates 3 MCQ comprehension questions from the summary and scores the user's answers with explanations.
+**Quiz** — For any article, the app generates 3 MCQ comprehension questions from the summary and scores the user's answers with explanations. The aim of this feature is to test the user's retention capacity. This will prevent a mindless scroll and promotes more attention to the content.
 
-**Debate** — An LLM debate partner grounded in the article's content. It cites specific passages, concedes valid points, and pushes back where warranted — not a generic chatbot.
+**Debate** — This feature is an agent in itself which is capable of taking a stand against the user's POV and can push back where warranted, enhancing interactions thereby increasing the time spent on the application.
 
----
-
-## Architecture
-
-```
-Flutter App
-     │  HTTP / JSON
-     ▼
-FastAPI  (port 8000)
-     │  BackgroundTask
-     ▼
-LangGraph Pipeline
-     │
-     ├── 7 Domain Agents (parallel, thread pool)
-     │     Each agent: Tavily Search + NewsAPI → scrape → quality filter → embed
-     │
-     └── Aggregator Node
-           ├── Pass 1: Semantic dedup via Qdrant (cosine similarity ≥ 0.85)
-           ├── Pass 2: URL-exact dedup + bulk insert → SQLite
-           └── Pass 3: Upsert vectors → Qdrant
-                │
-                ├── Qdrant  (vector store — dedup + semantic search)
-                └── SQLite  (articles, users, quiz sessions, pipeline runs)
-```
-
-Full architecture detail: [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ---
+
+## Architecture/Flow Diagram
+
+![Architecture diagram](./docs/images/architecture.png)
+
 
 ## Tech Stack
 
@@ -69,7 +49,7 @@ Full architecture detail: [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 **Concurrent Groq calls** are capped at 2 via `threading.Semaphore(2)`. With 7 agents running in parallel, each making 3–5 LLM calls, uncapped concurrency hits the API rate limit on every pipeline run.
 
-More: [DECISIONS_AND_TRADEOFFS.md](./DECISIONS_AND_TRADEOFFS.md) *(coming soon)*
+More: [DECISIONS_AND_TRADEOFFS.md](./DECISIONS_AND_TRADEOFFS.md)
 
 ---
 
