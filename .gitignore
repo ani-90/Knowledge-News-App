@@ -1,6 +1,9 @@
 # Secrets
 .env
 
+# Claude Code project instructions (local-only, not for the public repo)
+CLAUDE.md
+
 # Python
 __pycache__/
 *.py[cod]
