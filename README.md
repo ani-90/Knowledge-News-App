@@ -49,7 +49,7 @@ An AI-powered daily reading app for educated Indian readers. Every morning at 7 
 
 **Concurrent Groq calls** are capped at 2 via `threading.Semaphore(2)`. With 7 agents running in parallel, each making 3–5 LLM calls, uncapped concurrency hits the API rate limit on every pipeline run.
 
-More: [DECISIONS_AND_TRADEOFFS.md](./DECISIONS_AND_TRADEOFFS.md)
+More: [decisions and tradeoffs.md](./decisions%20and%20tradeoffs.md)
 
 ---
 
